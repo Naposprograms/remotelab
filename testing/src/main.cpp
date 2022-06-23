@@ -1,51 +1,118 @@
 #include <Arduino.h>
 #include <config.h>
 #include <led.h>
-#include <Adafruit_ADS1X15.h>
+#include <adc.h>
 
-
-AliveLed ledAlive(LED_ALIVE_PIN, LED_ALIVE_TIME_ON, LED_ALIVE_TIME_OFF);
+// Global objects
+//AliveLed ledAlive(LED_ALIVE_PIN, LED_ALIVE_TIME_ON, LED_ALIVE_TIME_OFF);
 SignalLed ledSignal(LED_SIGNAL_PIN, LED_SIGNAL_TIME_ON, LED_SIGNAL_TIME_OFF);
-Adafruit_ADS1115 moduleADC;
-Timer adcTimer;
+Adc adc;
+
+
+bool samplesReady, findingZero, buttonPushed;
+float lastValue, formerLastValue;
+
+
+void triggerZeroFinding()
+{
+    samplesReady = false;
+    findingZero = true;
+    formerLastValue = -1;
+    lastValue = -1;
+}
+
+bool detectRisingZeroCross(int16_t newValue)
+{
+    bool crossed = false;
+    if(lastValue < 0 && formerLastValue < 0)
+    {
+        if(lastValue < 0 && newValue >= 0)
+        {
+            crossed = true;
+        }
+    }
+    formerLastValue = lastValue;
+    lastValue = newValue;
+    return crossed;
+}
+
+float bitsToVoltage(uint16_t bits)
+{
+    return 36 * ((AC_ZERO_VOLTS * (bits) / AC_ZERO_BITS) - AC_ZERO_VOLTS);
+}
 
 
 void setup()
 {
     Serial.begin(9600);
-    if(moduleADC.begin())
+    ledSignal.blink(3);
+    pinMode(4, INPUT_PULLUP); // push-button
+    bool adcModuleWorking = adc.initiate();
+    if(adcModuleWorking)
     {
-        ledSignal.blink(3);
-        adcTimer.set(500);
+        Serial.println("ADC module OK");
+        adc.commandSampling(0, false);
+        triggerZeroFinding();
     }
+    else
+    {
+        Serial.println("ADC module NOT WORKING");
+    }
+    buttonPushed = false;
 }
+
 
 void loop()
 {
-    ledAlive.taskAliveLed();
+    //ledAlive.taskAliveLed();
     ledSignal.taskSignalLed();
-    if(adcTimer.elapsed())
+    samplesReady = adc.task();
+
+    if(!buttonPushed)
     {
-        int16_t adc0, adc1, adc2, adc3;
-        float volts0, volts1, volts2, volts3;
+        if(digitalRead(4) == LOW)
+        {
+            buttonPushed = true;
+            adc.commandSampling(0, false);
+            triggerZeroFinding();
+            Serial.println("Button pushed: Triggered zero finding");
+        }
+    }
 
-        adc0 = moduleADC.readADC_SingleEnded(0);
-        adc1 = moduleADC.readADC_SingleEnded(1);
-        adc2 = moduleADC.readADC_SingleEnded(2);
-        adc3 = moduleADC.readADC_SingleEnded(3);
-
-        volts0 = moduleADC.computeVolts(adc0);
-        volts1 = moduleADC.computeVolts(adc1);
-        volts2 = moduleADC.computeVolts(adc2);
-        volts3 = moduleADC.computeVolts(adc3);
-
-        Serial.println("-----------------------------------------------------------");
-        Serial.print("AIN0: "); Serial.print(adc0); Serial.print("  "); Serial.print(volts0); Serial.println("V");
-        Serial.print("AIN1: "); Serial.print(adc1); Serial.print("  "); Serial.print(volts1); Serial.println("V");
-        Serial.print("AIN2: "); Serial.print(adc2); Serial.print("  "); Serial.print(volts2); Serial.println("V");
-        Serial.print("AIN3: "); Serial.print(adc3); Serial.print("  "); Serial.print(volts3); Serial.println("V");
-
-
-        adcTimer.set(500);
+    if(samplesReady)
+    {
+        if(buttonPushed)
+        {
+            if(findingZero)
+            {
+                int16_t * sample = adc.getLastChannelSamples(0);
+                bool zeroFound = detectRisingZeroCross(bitsToVoltage(* sample));
+                if(zeroFound)
+                {
+                    Serial.println(bitsToVoltage((*sample)));
+                    adc.commandSampling(0, true);
+                    findingZero = false;
+                    Serial.println("Zero crossed: now sampling...");
+                }
+                else
+                {
+                    adc.commandSampling(0, false);
+                }
+            }
+            else
+            {
+                int16_t * samplesBuffer = adc.getLastChannelSamples(0);
+                Serial.println("SAMPLES");
+                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+                {
+                    Serial.print(i);
+                    Serial.print(":");
+                    Serial.println(bitsToVoltage(* samplesBuffer));
+                    samplesBuffer++;                
+                }
+                adc.stopSampling();
+                buttonPushed = false; // we can now push again, to command another sampling
+            }
+        }
     }
 }
