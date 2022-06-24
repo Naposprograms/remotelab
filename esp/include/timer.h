@@ -1,7 +1,3 @@
-#ifndef TIMER_H
-#define TIMER_H
-
-
 #include <esp32-hal.h>
 
 
@@ -36,6 +32,3 @@ class Timer {
         bool elapsed();
 
 };
-
-
-#endif 

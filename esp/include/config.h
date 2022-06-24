@@ -1,5 +1,5 @@
 // uncomment this line to adapt code for ESP32. Leave commented for arduino uno code. 
-//#define ESP32 1
+#define ESP32 1
 
 // PINS
 #ifndef ESP32

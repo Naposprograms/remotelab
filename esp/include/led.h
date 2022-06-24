@@ -1,7 +1,3 @@
-#ifndef LED_H
-#define LED_H
-
-
 #include <timer.h>
 #include <esp32-hal-gpio.h>
 
@@ -95,6 +91,3 @@ class SignalLed : private Led {
         void blink(uint8_t blinkingTimes);
 
 };
-
-
-#endif 
