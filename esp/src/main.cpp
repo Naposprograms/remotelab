@@ -42,6 +42,17 @@ float bitsToVoltage(uint16_t bits)
 }
 
 
+float rmsValue(float * values, uint8_t numberOfValues)
+{
+    float square = 0.0; 
+    for (uint8_t i = 0; i < numberOfValues; i++)
+    {
+        square += pow(* values, 2);
+        values++;
+    }
+    return sqrt(square / numberOfValues);
+}
+
 void setup()
 {
     Serial.begin(BAUD_RATE);
@@ -69,7 +80,7 @@ void loop()
 
     if(!buttonPushed)
     {
-        if(digitalRead(4) == LOW)
+        if(digitalRead(PUSH_BUTTON_PIN) == LOW)
         {
             buttonPushed = true;
             adc.commandSampling(0, false);
@@ -102,13 +113,17 @@ void loop()
             {
                 int16_t * samplesBuffer = adc.getLastChannelSamples(0);
                 Serial.println("SAMPLES");
+                float samplesArray[SAMPLES_ARRAY_SIZE];
+                float voltage, voltageRMS;
                 for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
                 {
-                    Serial.print(i);
-                    Serial.print(":");
-                    Serial.println(bitsToVoltage(* samplesBuffer));
-                    samplesBuffer++;                
+                    voltage = bitsToVoltage(* samplesBuffer);
+                    samplesArray[i] = voltage;
+                    Serial.printf("S#%d:%f\n", i, voltage);
+                    samplesBuffer++;          
                 }
+                voltageRMS = rmsValue(&samplesArray[0], SAMPLES_ARRAY_SIZE);
+                Serial.printf("RMS voltage: %f\n", voltageRMS);
                 adc.stopSampling();
                 buttonPushed = false; // we can now push again, to command another sampling
             }
