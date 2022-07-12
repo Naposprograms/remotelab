@@ -1,10 +1,7 @@
 #include "timer.h"
 
 
-// Nothing to do in constructor and destructor
-Timer::Timer() {}
-Timer::~Timer() {}
-
+Timer::Timer() {} // Nothing to do in constructor
 
 void Timer::set(unsigned long time_elapsed)
 {
@@ -15,10 +12,10 @@ bool Timer::elapsed()
 {
     bool timeElapsed = false;
     
-    if( millis() >= timer )
+    if(millis() >= timer)
     {
         timeElapsed = true;
     }
-
+    
     return(timeElapsed);
 }

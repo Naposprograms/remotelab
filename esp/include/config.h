@@ -10,10 +10,10 @@
     #define ADC_ALERT_PIN 3
 #else
     #define BAUD_RATE 115200
-    #define PUSH_BUTTON_PIN 17
+    #define PUSH_BUTTON_PIN 0
     #define LED_ALIVE_PIN 2
     #define LED_SIGNAL_PIN 0
-    #define ADC_ALERT_PIN 16
+    #define ADC_ALERT_PIN 19
 #endif
 
 
@@ -25,6 +25,6 @@
 
 // ADC
 // samples per second = 860, sampled signal period = 20 ms (therefore 17 samples per period) 
-#define SAMPLES_ARRAY_SIZE 34 // 34 = two periods
+#define SAMPLES_ARRAY_SIZE 17
 #define AC_ZERO_BITS 22300
-#define AC_ZERO_VOLTS 1.46
+#define AC_ZERO_VOLTS 1.50

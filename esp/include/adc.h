@@ -5,14 +5,14 @@
 // source: https://github.com/adafruit/Adafruit_BusIO
 
 
-// Test optimization with X macros -> https://www.geeksforgeeks.org/x-macros-in-c/
-/*
+// To learn about X macros go to https://www.geeksforgeeks.org/x-macros-in-c/
+// X macros examples at https://stackoverflow.com/questions/6635851/real-world-use-of-x-macros
 #define CHANNELS    \
     X(ch0, 0)       \
     X(ch1, 1)       \
     X(ch2, 2)       \
     X(ch3, 3)       
-*/
+
 
 struct channelSamples
 {
@@ -36,13 +36,13 @@ class Adc {
         Adafruit_ADS1115 moduleADC;
         bool samplingDone;
         uint8_t missingSamples, currentChannel;
-        /*
-        #define X(varName, chNumber) \
-            channelSamples varName;
-        CHANNELS
+        int16_t nullSampleValue = 0;
+        int16_t * nullSample = &nullSampleValue;
+
+        #define X(varName, chNumber) channelSamples varName;
+            CHANNELS
         #undef X
-        */
-        channelSamples ch0, ch1, ch2, ch3;
+
         samplingRequest currentSampling;
 
         void routeSample();

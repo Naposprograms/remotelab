@@ -9,22 +9,20 @@ Led::Led(uint8_t pin, bool isAliveType)
     toBlink = 0;
 }
 
-Led::~Led() {}
-
-void Led::setOnOffTimes(uint32_t msOn, uint32_t msOff)
+void Led::setOnOffTimes(uint32_t msOn, uint32_t msOff, Timer * ledTimer)
 {
     timeOn = msOn;
     timeOff = msOff;
     ledOn = false;
     digitalWrite(ledPin, ledOn);
-    ledTimer.set(msOff);
+    ledTimer->set(msOff);
 }
 
-void Led::taskLed()
+void Led::taskLed(Timer * ledTimer)
 {
     if(aliveType || toBlink)
     {
-        if(ledTimer.elapsed())
+        if(ledTimer->elapsed())
         {
             // switch led state
             ledOn = !ledOn;
@@ -32,11 +30,11 @@ void Led::taskLed()
             // set new timer
             if(ledOn)
             {
-                ledTimer.set(timeOn);
+                ledTimer->set(timeOn);
             }
             else
             {
-                ledTimer.set(timeOff);
+                ledTimer->set(timeOff);
             }
             // manage blinking times
             if(toBlink > 0 && !ledOn)
@@ -55,19 +53,14 @@ void Led::taskLed()
 
 AliveLed::AliveLed(uint8_t pin, uint32_t timeOn, uint32_t timeOff) : Led(pin, true)
 {
-    Led::setOnOffTimes(timeOn, timeOff);
+    Led::setOnOffTimes(timeOn, timeOff, &aliveLedTimer);
 }
-
-AliveLed::~AliveLed() {}; // nothing to do
 
 
 SignalLed::SignalLed(uint8_t pin, uint32_t timeOn, uint32_t timeOff) : Led(pin, false)
 {
-    Led::setOnOffTimes(timeOn, timeOff);
+    Led::setOnOffTimes(timeOn, timeOff, &signalLedTimer);
 }
-
-SignalLed::~SignalLed() {}; // nothing to do
-
 
 void SignalLed::blink(uint8_t blinkingTimes)
 {
@@ -79,10 +72,10 @@ void SignalLed::blink(uint8_t blinkingTimes)
 
 void AliveLed::taskAliveLed()
 {
-    Led::taskLed();
+    Led::taskLed(&aliveLedTimer);
 }
 
 void SignalLed::taskSignalLed()
 {
-    Led::taskLed();
+    Led::taskLed(&signalLedTimer);
 }

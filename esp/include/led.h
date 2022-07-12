@@ -1,13 +1,18 @@
-#include <timer.h>
-#include <esp32-hal-gpio.h>
+#ifndef LED_H
+#define LED_H
 
 
 /**
  * @brief Easy LED handler module for cleaner code in main application.
  * It allows to create an alive type LED and a signal type LED.
  * Alive type LED blinks permanently to indicate that the microcontroller is working.
- * Signal type LED blinks on command the specified number of times to signal an specific part of the program. 
+ * Signal type LED blinks on command the specified number of times to signal an specific part of the program.
+ * The hardware connection must be positive logic (the output when ON is Vcc/Vss and OFF is GND).
  */
+
+
+#include <timer.h>
+#include <esp32-hal-gpio.h>
 
 
 class Led {
@@ -17,7 +22,6 @@ class Led {
         bool aliveType, ledOn;
         uint32_t timeOn, timeOff;
         uint8_t ledPin;
-        Timer ledTimer;
 
 
     protected:
@@ -31,11 +35,11 @@ class Led {
          * @param msOn Time on (ms).
          * @param msOff Time off (ms).
          */
-        void setOnOffTimes(uint32_t msOn, uint32_t msOff);
+        void setOnOffTimes(uint32_t msOn, uint32_t msOff, Timer * ledTimer);
+        void taskLed(Timer * ledTimer);
 
 
     public:
-
         /**
          * @brief Base class for LED types.
          * 
@@ -43,15 +47,16 @@ class Led {
          * @param aliveType true to blink permanently (alive), false to blink on command (a signal).
          */
         Led(uint8_t pin, bool isAliveType);
-        ~Led();
-
-        void taskLed();
-
 
 };
 
 
 class AliveLed : private Led {
+
+    private:
+
+        Timer aliveLedTimer;
+
 
     public:
         /**
@@ -62,13 +67,22 @@ class AliveLed : private Led {
          * @param pin The microcontroller pin number which is connected to the LED.
          */
         AliveLed(uint8_t pin, uint32_t timeOn, uint32_t timeOff);
-        ~AliveLed();
+        
+        /**
+         * @brief The task must be periodically called in the loop.
+         * 
+         */
         void taskAliveLed();
 
 };
 
 
 class SignalLed : private Led {
+
+    private:
+        
+        Timer signalLedTimer;
+
 
     public:
         /**
@@ -79,8 +93,11 @@ class SignalLed : private Led {
          * @param pin The microcontroller pin number which is connected to the LED.
          */
         SignalLed(uint8_t pin, uint32_t timeOn, uint32_t timeOff);
-        ~SignalLed();
 
+        /**
+         * @brief The task must be periodically called in the loop.
+         * 
+         */
         void taskSignalLed();
 
         /**
@@ -91,3 +108,5 @@ class SignalLed : private Led {
         void blink(uint8_t blinkingTimes);
 
 };
+
+#endif
