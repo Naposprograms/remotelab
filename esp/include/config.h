@@ -12,8 +12,11 @@
     #define BAUD_RATE 115200
     #define PUSH_BUTTON_PIN 0
     #define LED_ALIVE_PIN 2
-    #define LED_SIGNAL_PIN 0
+    #define LED_SIGNAL_PIN 23
     #define ADC_ALERT_PIN 19
+    #define ADC_CALIBRATION_ON_PIN 18
+    #define VOLTAGE_ZERO_CROSS_SIGNAL_PIN 17
+    #define CURRENT_ZERO_CROSS_SIGNAL_PIN 16    
 #endif
 
 
@@ -24,7 +27,10 @@
 #define LED_SIGNAL_TIME_OFF 400
 
 // ADC
-// samples per second = 860, sampled signal period = 20 ms (therefore 17 samples per period) 
-#define SAMPLES_ARRAY_SIZE 17
-#define AC_ZERO_BITS 22300
-#define AC_ZERO_VOLTS 1.50
+// samples per second = 860 for ADS1115
+// for f = 50 Hz, T = 20 ms (there will be 17 samples of each period)
+#define SAMPLES_PER_PERIOD 17
+#define PERIODS_TO_SAMPLE 5
+#define SAMPLES_ARRAY_SIZE (SAMPLES_PER_PERIOD * PERIODS_TO_SAMPLE)
+#define VOLTAGE_DIVIDER_FACTOR 33.35 
+#define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so it has to be shrinked by 0.1

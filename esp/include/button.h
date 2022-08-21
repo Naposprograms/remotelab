@@ -14,6 +14,10 @@
 #include <timer.h>
 
 
+#define ACTIVE_LOW 0
+#define ACTIVE_HIGH 1
+
+
 class Button {
 
     private:
