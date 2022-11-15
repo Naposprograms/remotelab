@@ -64,36 +64,69 @@ bool Lab::task()
 {
     if(busy)
     {
-        if(calibratingADC)
+        if(!waitingRelays)
         {
-            if(adc.task())
+            if(calibratingADC)
             {
-                Serial.println("ADC DC offset calibrated.");
-                calibratingADC = false;
-                busy = false;
+                if(adc.task())
+                {
+                    Serial.println("ADC DC offset calibrated.");
+                    calibratingADC = false;
+                    busy = false;
+                }
             }
-        }
-        else // if it's not busy for calibration, then it's busy doing a lab
-        {
-            if(commandSampling)
+            else // if it's not busy for calibration, then it's busy doing a lab
             {
-                if(missingMeassures)
+                if(commandSampling)
+                {
+                    if(missingMeassures)
+                    {
+                        if(missingMeassures < 4) // the adc channels are done, go on with cosphi
+                        {
+                            commandSampling = false;
+                            switch (missingMeassures)
+                            {
+                                case 1:
+                                    cosphiMeassures[1] = cosphi1.getCosPhi();
+                                    cosphi0.commandSampling();
+                                    break;
+                                
+                                case 2:
+                                    cosphiMeassures[2] = cosphi2.getCosPhi();
+                                    cosphi1.commandSampling();
+                                    break;
+
+                                case 3:
+                                    cosphi2.commandSampling();
+                                    break;
+                                
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            commandSampling = false;
+                            adc.commandSampling(meassuresDone, SAMPLES_ARRAY_SIZE, SINGLE_CHANNEL_SAMPLING);
+                        }
+                    }
+                }
+                else
                 {
                     if(missingMeassures < 4) // the adc channels are done, go on with cosphi
                     {
-                        commandSampling = false;
                         switch (missingMeassures)
                         {
                             case 1:
-                                cosphi0.commandSampling();
+                                valueAvailable = cosphi0.task();
                                 break;
                             
                             case 2:
-                                cosphi1.commandSampling();
+                                valueAvailable = cosphi1.task();
                                 break;
 
                             case 3:
-                                cosphi2.commandSampling();
+                                valueAvailable = cosphi2.task();
                                 break;
                             
                             default:
@@ -102,50 +135,27 @@ bool Lab::task()
                     }
                     else
                     {
-                        commandSampling = false;
-                        adc.commandSampling(meassuresDone, SAMPLES_ARRAY_SIZE, SINGLE_CHANNEL_SAMPLING);
+                        valueAvailable = adc.task();
                     }
-                }
-            }
-            else
-            {
-                if(missingMeassures < 4) // the adc channels are done, go on with cosphi
-                {
-                    switch (missingMeassures)
+
+                    if(valueAvailable)
                     {
-                        case 1:
-                            valueAvailable = cosphi0.task();
-                            break;
-                        
-                        case 2:
-                            valueAvailable = cosphi1.task();
-                            break;
-
-                        case 3:
-                            valueAvailable = cosphi2.task();
-                            break;
-                        
-                        default:
-                            break;
+                        Serial.printf("Got meassure: %d\n", meassuresDone);
+                        commandSampling = true;
+                        meassuresDone++;
+                        missingMeassures--;
+                    }
+                    if(meassuresDone >= 7)
+                    {
+                        cosphiMeassures[0] = cosphi0.getCosPhi();
+                        busy = false;
                     }
                 }
-                else
-                {
-                    valueAvailable = adc.task();
-                }
-
-                if(valueAvailable)
-                {
-                    Serial.printf("Got meassure: %d\n", meassuresDone);
-                    commandSampling = true;
-                    meassuresDone++;
-                    missingMeassures--;
-                }
-                if(meassuresDone >= 7)
-                {
-                    busy = false;
-                }
             }
+        }
+        else
+        {
+            waitingRelays = !relaysTimer.elapsed();
         }
     }
     return !busy;
@@ -181,6 +191,15 @@ bool Lab::doLab(const char * circuitConfig)
                 #endif
             #endif
             labResults["circuitconfig"] = requestedConfig;
+            char byteToSend[8];
+            for(uint8_t i = 0; i < 8; i++)
+            {
+                byteToSend[i] = requestedConfig[i];
+            }
+            byteEncoder.setOutputByChar(&byteToSend[0], true);
+            waitingRelays = true;
+            relaysTimer.set(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+
             missingMeassures = 7; // 4 adc channels + 3 cosphi
             meassuresDone = 0;
             busy = true;
@@ -257,9 +276,16 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
         }
     }
     
-    labResults["branch_A_cosphi"] = truncFloat3(cosphi0.getCosPhi());
-    labResults["branch_B_cosphi"] = truncFloat3(cosphi1.getCosPhi());
-    labResults["branch_C_cosphi"] = truncFloat3(cosphi2.getCosPhi());
+    labResults["branch_A_cosphi"] = truncFloat3(cosphiMeassures[0]);
+    labResults["branch_B_cosphi"] = truncFloat3(cosphiMeassures[1]);
+    labResults["branch_C_cosphi"] = truncFloat3(cosphiMeassures[2]);
 
     return &labResults;
+}
+
+bool Lab::enableRelays()
+{
+    byteEncoder.setOutputByUInt(0, true); // to prevent relay triggering at power-on
+    byteEncoder.enableOutput(true); 
+    return true;
 }

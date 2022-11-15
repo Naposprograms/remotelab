@@ -37,6 +37,7 @@ bool CosPhi::validation()
 {
     bool validMeassure = true;
     int32_t difference = microsCurrent - microsVoltage;
+    Serial.printf("Cosphi validation -> Difference = %d\n", difference);
     /*
         Possibilities:
         For an inductive circuit difference > 0

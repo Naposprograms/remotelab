@@ -17,6 +17,11 @@
 #define LED_SIGNAL_PIN 23
 #define ADC_ALERT_PIN 19
 #define ADC_CALIBRATION_ON_PIN 18
+#define SHIFTER_LATCH_PIN 25
+#define SHIFTER_CLOCK_PIN 26
+#define SHIFTER_DATA_PIN 27
+#define SHIFTER_ENABLE_PIN 33
+
 #ifdef LAB_TYPE_S
     #define CURRENT_ZERO_CROSS_SIGNAL_PIN 17
     #define VOLTAGE_0_ZERO_CROSS_SIGNAL_PIN 16
@@ -47,5 +52,7 @@
 #define VOLTAGE_DIVIDER_FACTOR 33.35 
 #define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so the measure should be shrinked by 0.1
 #define TIME_BETWEEN_CALIBRATIONS_MS 60 * 1000 // 15 minutes in ms
+
+#define WAIT_TIME_AFTER_SWITCHING_RELAYS 500
 
 #endif

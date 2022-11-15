@@ -7,10 +7,14 @@
 #include <adc.h>
 #include <cosphi.h>
 #include <ArduinoJson.h>
+#include <timer.h>
+#include <shifter.h>
 
 
 #define KILOBYTE 1024
 static DynamicJsonDocument labResults((unsigned long) 10 * KILOBYTE);
+
+static Shifter byteEncoder(SHIFTER_LATCH_PIN, SHIFTER_CLOCK_PIN, SHIFTER_DATA_PIN, SHIFTER_ENABLE_PIN);
 
 
 class Lab {
@@ -18,9 +22,19 @@ class Lab {
     private:
         // c reallocation https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
         
-        bool busy, calibratingADC, commandSampling, valueAvailable = false;
+        bool busy = false;
+        bool calibratingADC = false;
+        bool commandSampling = false;
+        bool valueAvailable = false;
+        bool waitingRelays = false;
         const char * forbiddenConfig = "00011100";
         uint8_t missingMeassures, meassuresDone = 0;
+        // for cosphi to work, since the values are global due to the interrupts,
+        // once there's a value available it should be storaged before it's replaced.
+        float cosphiMeassures[3];
+
+        Timer relaysTimer;
+
 
 
         class VoltageNode {
@@ -110,6 +124,9 @@ class Lab {
         bool begin(TwoWire * usedWire);
 
         void calibrateADC();
+
+
+        bool enableRelays();
         
 };
 

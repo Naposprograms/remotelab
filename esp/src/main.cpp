@@ -14,11 +14,13 @@ Timer calibrationTimer;
 
 
 bool adcOK = false;
+bool relaysEnabled = false;
 bool sampling = false;
 bool calibrating = false;
 
-
-const char * dummyCircuitConfig = "10101010";
+bool circuitAB = false;
+const char * dummyCircuitConfig_A = "10101010";
+const char * dummyCircuitConfig_B = "01010101";
 DynamicJsonDocument * labJSON;
 
 
@@ -26,6 +28,7 @@ void setup()
 {
     delay(500); // delays on power ON to allow caps to charge and voltage levels to stabilize.
     Serial.begin(BAUD_RATE);
+    relaysEnabled = lab.enableRelays();
     adcOK = lab.begin(&Wire); 
     adcOK ? Serial.println("ADC OK") : Serial.println("ADC NOT WORKING");
     if(adcOK)
@@ -63,6 +66,14 @@ void loop()
     if(sampleButton.pressed())
     {
         ledSignal.blink(1);
-        sampling = lab.doLab(dummyCircuitConfig);
+        circuitAB = !circuitAB;
+        if(circuitAB)
+        {
+            sampling = lab.doLab(dummyCircuitConfig_A);
+        }
+        else
+        {
+            sampling = lab.doLab(dummyCircuitConfig_B);
+        }
     }
 }
