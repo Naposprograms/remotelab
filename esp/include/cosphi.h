@@ -2,7 +2,12 @@
 #define COSPHI_H
 
 
+// module tested ok on inductive. missing documentation & testing capacitive and resitive.
 #include <Arduino.h>
+
+
+#define LINE_FREQUENCY_IN_HZ 50.0
+#define PERIOD_IN_MS 1000 * (1.0 / LINE_FREQUENCY_IN_HZ)
 
 
 class CosPhi {
@@ -19,7 +24,7 @@ class CosPhi {
         (which is when the signal crosses from negative to positive),
         if there is more than half a period between the signals then we have read first the last signal.
         Therefore we assume that the opposite signal comes first, and then read the delay. */
-        void circuitReactiveCharacteristic();
+        bool validation();
 
     public:
 

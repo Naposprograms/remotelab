@@ -3,9 +3,9 @@
 
 Timer::Timer() {} // Nothing to do in constructor
 
-void Timer::set(unsigned long time_elapsed)
+void Timer::set(unsigned long timeToPass)
 {
-    timer = millis() + time_elapsed;
+    timer = millis() + timeToPass;
 }
 
 bool Timer::elapsed()

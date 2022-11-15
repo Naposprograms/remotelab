@@ -27,9 +27,9 @@ class Timer {
         /**
          * @brief Set a timer in ms 
          * 
-         * @param time_elapsed Time in ms to count up to.  
+         * @param timeToPass Time in ms to count up to.  
          */
-        void set(unsigned long time_elapsed);
+        void set(unsigned long timeToPass);
 
         /**
          * @brief Call this method periodically to check if the set time has elapsed

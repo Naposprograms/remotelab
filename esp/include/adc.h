@@ -2,6 +2,11 @@
 #define ADC_H
 
 
+
+// missing more testing on calibration (while using scope to compare with hardware)
+// the esp32 being on disturbs the amp int output signal (and the gain set resistor signal)
+
+
 /**
  * @brief This is a non-blocking module used to interact with the ADC module ADS1115.
  * It allows to command single or multiple samples, on single channels or differential between channels.
@@ -10,6 +15,7 @@
 
 
 #include <Arduino.h>
+#include <timer.h>
 #include <Adafruit_ADS1X15.h>
 // source: https://github.com/adafruit/Adafruit_ADS1X15
 // source: https://github.com/adafruit/Adafruit_BusIO
@@ -33,8 +39,9 @@ class Adc {
     private:
 
         Adafruit_ADS1115 moduleADC;
+        Timer calibrationTimer;
 
-        bool samplingDone, currentSamplingIsDifferential;
+        bool samplingDone, currentSamplingIsDifferential, capsDischarged;
         uint8_t missingSamples, missingChannelsCalibration, samplesArraySize;
         uint8_t currentChannel, alertPin, calibrationPin;
         int16_t nullSampleValue = 0;
@@ -96,7 +103,7 @@ class Adc {
          * @return true if the module is working OK.
          * @return false if something failed.
          */
-        bool begin();
+        bool begin(TwoWire * usedWire);
 
         /**
          * @brief The task must be periodically called in the loop.
@@ -138,6 +145,7 @@ class Adc {
 
         /**
          * @brief Triggers a signal to ground all AC inputs and commands a sampling process for each channel.
+         * There is a brief non-blocking delay for capacitors to discharge before meassuring the DC offset.
          * Then it stores the meassured bits to know the real DC offset of each channel.
          */
         void calibrateDCOffset();

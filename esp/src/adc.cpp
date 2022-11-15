@@ -20,6 +20,8 @@ Adc::Adc(uint8_t adcAlertPin, uint8_t calibrationSignalPin)
 {
     alertPin = adcAlertPin;
     calibrationPin = calibrationSignalPin;
+    pinMode(alertPin, INPUT);
+    pinMode(calibrationPin, OUTPUT);
 }
 
 
@@ -92,13 +94,11 @@ void Adc::routeSample()
 }
 
 
-bool Adc::begin()
+bool Adc::begin(TwoWire * usedWire)
 {
-    bool moduleOk = moduleADC.begin();
+    bool moduleOk = moduleADC.begin(ADS1X15_ADDRESS, usedWire);
     if(moduleOk)
     {
-        pinMode(alertPin, INPUT);
-        pinMode(calibrationPin, OUTPUT);
         digitalWrite(calibrationPin, LOW);
         attachInterrupt(digitalPinToInterrupt(alertPin), newDataReadyADC, FALLING);
 
@@ -109,6 +109,7 @@ bool Adc::begin()
         currentSamplingIsDifferential = false;
         samplingDone = true;
         newData = false;
+        capsDischarged = true;
     }
     return moduleOk;
 }
@@ -199,7 +200,7 @@ bool Adc::task()
                         digitalWrite(calibrationPin, LOW);
                         samplingDone = true;
                         currentSampling = NONE;
-                    }                    
+                    }
                     break;
 
                 default:
@@ -207,6 +208,21 @@ bool Adc::task()
             }
         }
     }
+
+    if(currentSampling == CALIBRATION && !capsDischarged)
+    {
+        capsDischarged = calibrationTimer.elapsed();
+        if(capsDischarged)
+        {
+            currentChannel = 3;
+            // starts by channel 3, then in the task it goes descending to channel 0 
+            moduleADC.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_3, false);
+            missingSamples = 4;
+            newData = false;
+            samplingDone = false;
+        }
+    }
+    
     return samplingDone;
 }
 
@@ -386,15 +402,11 @@ void Adc::calibrateDCOffset()
     if(currentSampling == NONE)
     {
         digitalWrite(calibrationPin, HIGH);
-        // correct this with a non-blocking timer object
-        delay(500); // delays to allow BJTs to ground inputs and caps to discharge before starting to sample
-        currentChannel = 3;
-        // starts by channel 3, then in the task it goes descending to channel 0 
-        moduleADC.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_3, false);
-        missingSamples = 4;
-        newData = false;
-        samplingDone = false;
+        capsDischarged = false;
+        calibrationTimer.set(1000);
+        // delays to allow BJTs to ground inputs and caps to discharge before starting to sample
         currentSampling = CALIBRATION;
+        samplingDone = false;
     }
 }
 

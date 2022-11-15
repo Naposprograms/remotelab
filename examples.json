@@ -1,0 +1,35 @@
+{
+    "lab": "parallel",
+    "circuitconfig": "01000110"
+}
+
+{
+    "lab": "series",
+    "circuitconfig": "01010100",
+    "node_A_RMS": 12.06,
+    "node_A_values": [0.31, 0.82, 1.12, etc],
+    "node_B_RMS": 7.03,
+    "node_B_values": [0.31, 0.82, 1.12, etc],
+    "node_C_RMS": 1.05,
+    "node_C_values": [0.31, 0.82, 1.12, etc],
+    "current_RMS": 0.083,
+    "current_values": [0.001, 0.005, 0.011, etc],
+    "node_A_cosphi": 0.81,
+    "node_B_cosphi": 0.99,
+    "node_C_cosphi": -1.05
+};
+{
+    "lab": "parallel",
+    "circuitconfig": "11010110",
+    "voltage_RMS": 12.06,
+    "voltage_values": [0.31, 0.82, 1.12, etc],
+    "current_A_RMS": 0.083,
+    "current_A_values": [0.001, 0.005, 0.011, etc],
+    "current_B_RMS": 0.198,
+    "current_B_values": [0.001, 0.005, 0.011, etc],
+    "current_C_RMS": 0.153,
+    "current_C_values": [0.001, 0.005, 0.011, etc],
+    "branch_A_cosphi": 0.81,
+    "branch_B_cosphi": 0.99,
+    "branch_C_cosphi": -1.05
+};

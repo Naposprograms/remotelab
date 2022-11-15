@@ -1,22 +1,34 @@
-// uncomment this line to adapt code for ESP32. Leave commented for arduino uno code. 
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #define ESP32 1
 
+// LAB
+//#define LAB_TYPE_S 's'
+#ifndef LAB_TYPE_S
+    #define LAB_TYPE_P 'p'
+#endif // = 's' for series, 'p' for parallel
+
+
 // PINS
-#ifndef ESP32
-    #define BAUD_RATE 9600
-    #define PUSH_BUTTON_PIN 4
-    #define LED_ALIVE_PIN 13
-    #define LED_SIGNAL_PIN 5
-    #define ADC_ALERT_PIN 3
+#define BAUD_RATE 115200
+#define PUSH_BUTTON_PIN 0
+#define LED_ALIVE_PIN 2
+#define LED_SIGNAL_PIN 23
+#define ADC_ALERT_PIN 19
+#define ADC_CALIBRATION_ON_PIN 18
+#ifdef LAB_TYPE_S
+    #define CURRENT_ZERO_CROSS_SIGNAL_PIN 17
+    #define VOLTAGE_0_ZERO_CROSS_SIGNAL_PIN 16
+    #define VOLTAGE_1_ZERO_CROSS_SIGNAL_PIN 4
+    #define VOLTAGE_2_ZERO_CROSS_SIGNAL_PIN 15
 #else
-    #define BAUD_RATE 115200
-    #define PUSH_BUTTON_PIN 0
-    #define LED_ALIVE_PIN 2
-    #define LED_SIGNAL_PIN 23
-    #define ADC_ALERT_PIN 19
-    #define ADC_CALIBRATION_ON_PIN 18
-    #define VOLTAGE_ZERO_CROSS_SIGNAL_PIN 17
-    #define CURRENT_ZERO_CROSS_SIGNAL_PIN 16    
+    #ifdef LAB_TYPE_P
+        #define VOLTAGE_ZERO_CROSS_SIGNAL_PIN 17
+        #define CURRENT_0_ZERO_CROSS_SIGNAL_PIN 16
+        #define CURRENT_1_ZERO_CROSS_SIGNAL_PIN 4
+        #define CURRENT_2_ZERO_CROSS_SIGNAL_PIN 15
+    #endif
 #endif
 
 
@@ -33,4 +45,7 @@
 #define PERIODS_TO_SAMPLE 5
 #define SAMPLES_ARRAY_SIZE (SAMPLES_PER_PERIOD * PERIODS_TO_SAMPLE)
 #define VOLTAGE_DIVIDER_FACTOR 33.35 
-#define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so it has to be shrinked by 0.1
+#define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so the measure should be shrinked by 0.1
+#define TIME_BETWEEN_CALIBRATIONS_MS 60 * 1000 // 15 minutes in ms
+
+#endif
