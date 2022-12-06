@@ -140,7 +140,7 @@ bool Lab::task()
 
                     if(valueAvailable)
                     {
-                        Serial.printf("Got meassure: %d\n", meassuresDone);
+                        //Serial.printf("Got meassure: %d\n", meassuresDone);
                         commandSampling = true;
                         meassuresDone++;
                         missingMeassures--;
@@ -183,6 +183,7 @@ bool Lab::doLab(const char * circuitConfig)
         if(compare != 0)
         {
             Serial.println("Circuit config ok. Commanding samples...");
+            labResults.clear(); // erases the previous JSON 
             #ifdef LAB_TYPE_S
                 labResults["lab"] = "series";
             #else
@@ -233,7 +234,10 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
                 {
                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 0);
                     samplesBuffer++;
-                    labResults["current_A_values"][i] = truncFloat3(values[i]);
+                    if(fullOutput)
+                    {
+                        labResults["current_A_values"][i] = truncFloat3(values[i]);
+                    }
                 }
                 labResults["current_A_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
                 break;
@@ -244,7 +248,10 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
                 {
                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 1);
                     samplesBuffer++;
-                    labResults["current_B_values"][i] = truncFloat3(values[i]);
+                    if(fullOutput)
+                    {
+                        labResults["current_B_values"][i] = truncFloat3(values[i]);
+                    }
                 }
                 labResults["current_B_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
                 break;
@@ -255,7 +262,10 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
                 {
                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 2);
                     samplesBuffer++;
-                    labResults["current_C_values"][i] = truncFloat3(values[i]);
+                    if(fullOutput)
+                    {
+                        labResults["current_C_values"][i] = truncFloat3(values[i]);
+                    }
                 }
                 labResults["current_C_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
                 break;
@@ -266,7 +276,10 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
                 {
                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, VOLTAGE_DIVIDER_FACTOR, 3);
                     samplesBuffer++;
-                    labResults["voltage_values"][i] = truncFloat3(values[i]);
+                    if(fullOutput)
+                    {
+                        labResults["voltage_values"][i] = truncFloat3(values[i]);
+                    }
                 }
                 labResults["voltage_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
                 break;
@@ -285,7 +298,8 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
 
 bool Lab::enableRelays()
 {
-    byteEncoder.setOutputByUInt(0, true); // to prevent relay triggering at power-on
+    byteEncoder.setOutputByUInt(0, true); // to prevent relay triggering at power-on.
+    byteEncoder.setOutputByUInt(0, true); // twice: one for shift and another for storage.
     byteEncoder.enableOutput(true); 
     return true;
 }

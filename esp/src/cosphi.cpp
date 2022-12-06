@@ -5,6 +5,7 @@
 volatile unsigned long microsVoltage, microsCurrent;
 volatile bool voltageCrossedZero, currentCrossedZero = false;
 
+
 void IRAM_ATTR zeroCrossVoltage()
 {
     if(!voltageCrossedZero) // to read only once
@@ -37,7 +38,6 @@ bool CosPhi::validation()
 {
     bool validMeassure = true;
     int32_t difference = microsCurrent - microsVoltage;
-    Serial.printf("Cosphi validation -> Difference = %d\n", difference);
     /*
         Possibilities:
         For an inductive circuit difference > 0
@@ -53,11 +53,24 @@ bool CosPhi::validation()
         a quarter period (90º phase shift), then the signals detected belong to different cycles.
         Therefore, the meassure must be taken again until a difference < 1/4 T is found.
         Finally the * 1000 factor is because the difference is expressed in microseconds.
+
+        Given that the formula subtracts the voltage timeframe from the current timeframe,
+        if the result is negative but it is in the quarter period range from the previous period
+        it can be corrected by subtracting a whole period of the timeframe from the voltage signal.
     */
-    if(abs(difference) > PERIOD_IN_MS * 0.25 * 1000)
+    if(abs(difference) > quarterPeriodMicroSeconds)
     {
-        validMeassure = false;
+        if(negativePeriodMicroSeconds < difference && difference < negativePeriodMicroSeconds + quarterPeriodMicroSeconds)
+        {
+            microsVoltage -= PERIOD_IN_MS * 1000;
+        }
+        else
+        {
+            validMeassure = false;
+            attempts++;
+        }
     }
+    
     return validMeassure;
 }
 
@@ -67,8 +80,18 @@ bool CosPhi::task()
     if(triggerSampling)
     {
         triggerSampling = false;
-        attachInterrupt(digitalPinToInterrupt(voltageSignalPin), zeroCrossVoltage, FALLING);
-        attachInterrupt(digitalPinToInterrupt(currentSignalPin), zeroCrossCurrent, FALLING);
+        // if 5 attempts weren't enough then something's wrong with the circuit load.
+        // the getCosPhi() method will return 0 
+        if(attempts < 5)
+        {
+            attachInterrupt(digitalPinToInterrupt(voltageSignalPin), zeroCrossVoltage, FALLING);
+            attachInterrupt(digitalPinToInterrupt(currentSignalPin), zeroCrossCurrent, FALLING);
+        }
+        else
+        {
+            missingLoad = true;
+            valueReady = true;
+        }
     }
     if(voltageCrossedZero && currentCrossedZero)
     {
@@ -76,12 +99,8 @@ bool CosPhi::task()
         detachInterrupt(currentSignalPin);
         voltageCrossedZero = false;
         currentCrossedZero = false;
-        
         validation() ? valueReady = true : triggerSampling = true;
-        // add something to prevent loop stuck in triggerSampling if the signal never shows
-        // i.e. if there is nothing connected
     }
-
     return valueReady;
 }
 
@@ -89,12 +108,21 @@ bool CosPhi::task()
 void CosPhi::commandSampling()
 {
     triggerSampling = true;
+    attempts = 0;
+    missingLoad = false;
 }
 
 
 float CosPhi::getCosPhi()
 {
-    // see "error" return value if the measure fails (might be higher than 1 for example)
     valueReady = false;
-    return cos(2 * PI * ( (microsCurrent - microsVoltage) / (1000 * PERIOD_IN_MS)));
+    int16_t diff = microsCurrent - microsVoltage;
+    if(missingLoad)
+    {
+        return 0;
+    }
+    else
+    {
+        return cos(2 * PI * (diff / (1000.0 * PERIOD_IN_MS)));
+    }
 }

@@ -51,7 +51,7 @@
 #define SAMPLES_ARRAY_SIZE (SAMPLES_PER_PERIOD * PERIODS_TO_SAMPLE)
 #define VOLTAGE_DIVIDER_FACTOR 33.35 
 #define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so the measure should be shrinked by 0.1
-#define TIME_BETWEEN_CALIBRATIONS_MS 60 * 1000 // 15 minutes in ms
+#define TIME_BETWEEN_CALIBRATIONS_MS 3 * 60 * 1000 // 15 minutes in ms
 
 #define WAIT_TIME_AFTER_SWITCHING_RELAYS 500
 

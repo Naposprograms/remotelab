@@ -49,18 +49,38 @@ void loop()
     {
         if(lab.task()) // true when the lab is finished or the device is idle
         {
-            if(calibrationTimer.elapsed())
-            {
-                calibrating = false;
-                calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
-            }
             if(sampling)
             {
-                labJSON = lab.getLabResults(true);
+                labJSON = lab.getLabResults(false);
                 serializeJsonPretty(* labJSON, Serial);
                 sampling = false;
                 sampleButton.release();
             }
+        }
+    }
+    else
+    {
+        if(calibrationTimer.elapsed())
+        {
+                /*
+            if(calibrating)
+            {
+                for(uint8_t i = 0; i < 4; i++)
+                {
+                    Serial.printf("CH%d offset: %f", i, lab.getADCChOffset());
+                }
+                calibrating = false;
+                calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
+            }
+            else
+            {
+                lab.calibrateADC();
+                calibrating = true;
+            }
+                */
+            lab.calibrateADC();
+            calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
+            calibrating = true;
         }
     }
     if(sampleButton.pressed())
