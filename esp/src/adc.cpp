@@ -77,15 +77,19 @@ void Adc::routeSample()
     }
     else
     {
+        //Serial.printf("CH%d -> %d\n", currentChannel, sampleValue);
         switch (currentChannel)
         {
-            #define X(varName, chNumber)                    \
-                case chNumber:                              \
-                    Serial.printf("CH%d, bits:%d\n", chNumber, sampleValue);\
-                    varName.offsetBits = sampleValue;       \
+            #define X(varName, chNumber)              \
+                case chNumber:                        \
+                    * varName.bufferPtr = sampleValue;\
+                    varName.bufferPtr++;              \
                     break;
                 CHANNELS
             #undef X
+                    /*Serial.printf("CH%d, bits:%d\n", chNumber, sampleValue);\
+                    varName.offsetBits = sampleValue;       \
+                    break;*/
 
             default:
                 break;
@@ -178,29 +182,68 @@ bool Adc::task()
                     routeSample();
                     missingSamples--;
                     newData = false;
-                    if(missingSamples)
+                    if(!missingSamples)
                     {
-                        currentChannel--;
-                        switch (currentChannel)
+                        if(currentChannel)
                         {
-                            #define X(varName, chNumber)                                    \
-                                case chNumber:                                              \
-                                    moduleADC.startADCReading(                              \
-                                        ADS1X15_REG_CONFIG_MUX_SINGLE_##chNumber, false);   \
-                                    break;
-                                CHANNELS
-                            #undef X
+                            currentChannel--;
+                            missingSamples = MAX_SAMPLES_ARRAY_SIZE;
+                            switch (currentChannel)
+                            {
+                                #define X(varName, chNumber)                                    \
+                                    case chNumber:                                              \
+                                        varName.bufferPtr = &varName.samplesBuffer[0];          \
+                                        moduleADC.startADCReading(                              \
+                                            ADS1X15_REG_CONFIG_MUX_SINGLE_##chNumber, true);    \
+                                        break;
+                                    CHANNELS
+                                #undef X
 
-                            default:
-                                break;
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            unsigned long chAverage = 0;
+                            for(uint8_t channelNumber = 0; channelNumber < 4; channelNumber++)
+                            {
+                                switch (channelNumber)
+                                {
+                                    #define X(varName, chNumber)                            \
+                                        case chNumber:                                      \
+                                            varName.bufferPtr = &varName.samplesBuffer[0];  \
+                                            chAverage = 0;                                  \
+                                            for(uint8_t sampleNumber = 0;                   \
+                                            sampleNumber < MAX_SAMPLES_ARRAY_SIZE;          \
+                                            sampleNumber++)                                 \
+                                            { chAverage += * varName.bufferPtr;             \
+                                            varName.bufferPtr++;}                           \
+                                            chAverage = chAverage / MAX_SAMPLES_ARRAY_SIZE; \
+                                            varName.offsetBits = chAverage;                 \
+                                            Serial.printf("CH%d offset bits: %d\n",         \
+                                            chNumber, varName.offsetBits);                  \
+                                            break;
+                                        CHANNELS
+                                    #undef X
+                                            
+                                    default:
+                                        break;
+                                }
+                            }
+                            samplingDone = true;
+                            currentSampling = NONE;
+                            Serial.println("ADC calibrated");
                         }
                     }
+                    /*
                     else
                     {
                         digitalWrite(calibrationPin, LOW);
                         samplingDone = true;
                         currentSampling = NONE;
                     }
+                    */
                     break;
 
                 default:
@@ -209,6 +252,7 @@ bool Adc::task()
         }
     }
 
+    /*
     if(currentSampling == CALIBRATION && !capsDischarged)
     {
         capsDischarged = calibrationTimer.elapsed();
@@ -222,6 +266,7 @@ bool Adc::task()
             samplingDone = false;
         }
     }
+    */
     
     return samplingDone;
 }
@@ -401,12 +446,21 @@ void Adc::calibrateDCOffset()
     // will only command to calibrate if there is no ongoing sampling task
     if(currentSampling == NONE)
     {
+        /*
         digitalWrite(calibrationPin, HIGH);
         capsDischarged = false;
         calibrationTimer.set(1000);
         // delays to allow BJTs to ground inputs and caps to discharge before starting to sample
+        */
         currentSampling = CALIBRATION;
         samplingDone = false;
+
+        currentChannel = 3;
+        ch3.bufferPtr = &ch3.samplesBuffer[0];
+        // starts by channel 3, then in the task it goes descending to channel 0 
+        moduleADC.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_3, true);
+        missingSamples = MAX_SAMPLES_ARRAY_SIZE;
+        newData = false;
     }
 }
 
