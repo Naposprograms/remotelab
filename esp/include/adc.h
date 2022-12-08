@@ -46,6 +46,8 @@ class Adc {
         uint8_t currentChannel, alertPin, calibrationPin;
         int16_t nullSampleValue = 0;
         int16_t * nullSample = &nullSampleValue;
+        int16_t channelsOffsetBits[4];
+        float channelsOffsetVolts[4];
 
 
         // To learn about X macros go to https://www.geeksforgeeks.org/x-macros-in-c/
@@ -173,6 +175,20 @@ class Adc {
          * and adjusted by the DC offset of the specified ADC channel.
          */
         float convertBitsToVoltageWithDCOffset(int16_t bits, float signalAmplitudeFactor, uint8_t adcChannel);
+
+        /**
+         * @brief Get the Channels DC Offset meassured in Bits
+         * 
+         * @return int16_t * pointer to ch0 bits (do ptr++ to read ch1, ch2, ch3)
+         */
+        int16_t * getChannelsDCOffsetBits();
+
+        /**
+         * @brief Get the Channels DC Offset in Volts
+         * 
+         * @return float * pointer to ch0 volts (do ptr++ to read ch1, ch2, ch3)
+         */
+        float * getChannelsDCOffsetVolts();
 };
 
 #endif

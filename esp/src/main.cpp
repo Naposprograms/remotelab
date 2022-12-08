@@ -56,33 +56,27 @@ void loop()
                 sampling = false;
                 sampleButton.release();
             }
+            if(calibrating)
+            {
+                float * ptr = lab.getADCDCOffsetVolts();
+                for(uint8_t chNumber = 0; chNumber < 4; chNumber++)
+                {
+                    Serial.printf("CH%d DC offset:%f\n", chNumber, * (ptr + chNumber));
+                }
+                calibrating = false;                
+                calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
+            }
         }
     }
     else
     {
-        if(calibrationTimer.elapsed())
+        if(calibrationTimer.elapsed() && !calibrating)
         {
-                /*
-            if(calibrating)
-            {
-                for(uint8_t i = 0; i < 4; i++)
-                {
-                    Serial.printf("CH%d offset: %f", i, lab.getADCChOffset());
-                }
-                calibrating = false;
-                calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
-            }
-            else
-            {
-                lab.calibrateADC();
-                calibrating = true;
-            }
-                */
             lab.calibrateADC();
-            calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
             calibrating = true;
         }
     }
+
     if(sampleButton.pressed())
     {
         ledSignal.blink(1);

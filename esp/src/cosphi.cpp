@@ -101,6 +101,10 @@ bool CosPhi::task()
         currentCrossedZero = false;
         validation() ? valueReady = true : triggerSampling = true;
     }
+
+    // add a timer to prevent loop getting stuck if after some time one of the signals is never crossing zero
+    // this might be the case if there is no circuit load 
+
     return valueReady;
 }
 

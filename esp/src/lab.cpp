@@ -70,7 +70,6 @@ bool Lab::task()
             {
                 if(adc.task())
                 {
-                    Serial.println("ADC DC offset calibrated.");
                     calibratingADC = false;
                     busy = false;
                 }
@@ -86,6 +85,7 @@ bool Lab::task()
                             commandSampling = false;
                             switch (missingMeassures)
                             {
+                                // see here for cases where a branch or node has no load and there should be no cosphi
                                 case 1:
                                     cosphiMeassures[1] = cosphi1.getCosPhi();
                                     cosphi0.commandSampling();
@@ -107,6 +107,7 @@ bool Lab::task()
                         else
                         {
                             commandSampling = false;
+                            // see here for changes for series voltage drop
                             adc.commandSampling(meassuresDone, SAMPLES_ARRAY_SIZE, SINGLE_CHANNEL_SAMPLING);
                         }
                     }
@@ -302,4 +303,15 @@ bool Lab::enableRelays()
     byteEncoder.setOutputByUInt(0, true); // twice: one for shift and another for storage.
     byteEncoder.enableOutput(true); 
     return true;
+}
+
+float * Lab::getADCDCOffsetVolts()
+{
+    float * ptr = adc.getChannelsDCOffsetVolts();
+    for(uint8_t ch = 0; ch < 4; ch++)
+    {
+        ADCchannelsOffsetVolts[ch] = * ptr;
+        ptr++;
+    }
+    return &ADCchannelsOffsetVolts[0];
 }

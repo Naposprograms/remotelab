@@ -221,11 +221,14 @@ bool Adc::task()
                                             varName.bufferPtr++;}                           \
                                             chAverage = chAverage / MAX_SAMPLES_ARRAY_SIZE; \
                                             varName.offsetBits = chAverage;                 \
-                                            Serial.printf("CH%d offset bits: %d\n",         \
-                                            chNumber, varName.offsetBits);                  \
+                                            channelsOffsetBits[channelNumber] = chAverage;  \
                                             break;
                                         CHANNELS
                                     #undef X
+
+                                            //Serial.printf("CH%d offset bits: %d\n",         \
+                                            chNumber, varName.offsetBits);                  \
+
                                             
                                     default:
                                         break;
@@ -233,7 +236,6 @@ bool Adc::task()
                             }
                             samplingDone = true;
                             currentSampling = NONE;
-                            Serial.println("ADC calibrated");
                         }
                     }
                     /*
@@ -489,4 +491,20 @@ float Adc::convertBitsToVoltageWithDCOffset(int16_t bits, float signalAmplitudeF
     }
     offsetVoltage = convertBitsToVoltage(offsetInBits, 1);
     return signalAmplitudeFactor * ((offsetVoltage * (bits) / offsetInBits) - offsetVoltage);
+}
+
+
+int16_t * Adc::getChannelsDCOffsetBits()
+{
+    return &channelsOffsetBits[0];
+}
+
+
+float * Adc::getChannelsDCOffsetVolts()
+{
+    for(uint8_t chNumber = 0; chNumber < 4; chNumber++)
+    {
+        channelsOffsetVolts[chNumber] = convertBitsToVoltage(channelsOffsetBits[chNumber], 1);
+    }
+    return &channelsOffsetVolts[0];
 }
