@@ -15,6 +15,7 @@
         "initializer_list": "cpp",
         "memory": "cpp",
         "random": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "cstring": "cpp"
     }
 }

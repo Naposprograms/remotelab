@@ -32,6 +32,7 @@ class Lab {
         // for cosphi to work, since the values are global due to the interrupts,
         // once there's a value available it should be storaged before it's replaced.
         float cosphiMeassures[3];
+        bool cosphiInductive[3];
         float ADCchannelsOffsetVolts[4];
 
         Timer relaysTimer;

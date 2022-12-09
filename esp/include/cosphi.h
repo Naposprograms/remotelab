@@ -23,7 +23,8 @@ class CosPhi {
         u_int8_t attempts = 0;
         const int32_t quarterPeriodMicroSeconds = 1000 * PERIOD_IN_MS / 4;
         const int32_t negativePeriodMicroSeconds = 1000 * PERIOD_IN_MS * -1;
-
+        Timer meassureTimeOut;
+        
 
         /* Detects if the circuit is inductive or capacitive (to know which signal comes first).
         Since only the falling edge is being detected 
@@ -41,6 +42,9 @@ class CosPhi {
         void commandSampling();
 
         float getCosPhi();
+
+        bool meassuredInductive = false;
+
 };
 
 #endif

@@ -61,9 +61,9 @@ void loop()
                 float * ptr = lab.getADCDCOffsetVolts();
                 for(uint8_t chNumber = 0; chNumber < 4; chNumber++)
                 {
-                    Serial.printf("CH%d DC offset:%f\n", chNumber, * (ptr + chNumber));
+                    Serial.printf("CH%d DC offset: %f\n", chNumber, * (ptr + chNumber));
                 }
-                calibrating = false;                
+                calibrating = false;
                 calibrationTimer.set(TIME_BETWEEN_CALIBRATIONS_MS);
             }
         }

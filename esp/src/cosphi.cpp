@@ -63,13 +63,17 @@ bool CosPhi::validation()
         if(negativePeriodMicroSeconds < difference && difference < negativePeriodMicroSeconds + quarterPeriodMicroSeconds)
         {
             microsVoltage -= PERIOD_IN_MS * 1000;
+            difference = microsCurrent - microsVoltage;
         }
         else
         {
+            //Serial.printf("Invalid cosphi meassure. Difference = %d\n", difference);
             validMeassure = false;
             attempts++;
         }
     }
+
+    difference > 0 ? meassuredInductive = true : meassuredInductive = false;
     
     return validMeassure;
 }
@@ -102,8 +106,14 @@ bool CosPhi::task()
         validation() ? valueReady = true : triggerSampling = true;
     }
 
-    // add a timer to prevent loop getting stuck if after some time one of the signals is never crossing zero
-    // this might be the case if there is no circuit load 
+    // timer to prevent loop getting stuck if after some time one of the signals is never crossing zero
+    // this might be the case if there is no circuit load
+    if(meassureTimeOut.elapsed())
+    {
+        missingLoad = true;
+        valueReady = true;
+        //Serial.println("Cosphi timer elapsed");
+    }
 
     return valueReady;
 }
@@ -114,7 +124,9 @@ void CosPhi::commandSampling()
     triggerSampling = true;
     attempts = 0;
     missingLoad = false;
+    meassureTimeOut.set(PERIOD_IN_MS * 5);
 }
+
 
 
 float CosPhi::getCosPhi()

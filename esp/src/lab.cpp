@@ -88,11 +88,13 @@ bool Lab::task()
                                 // see here for cases where a branch or node has no load and there should be no cosphi
                                 case 1:
                                     cosphiMeassures[1] = cosphi1.getCosPhi();
+                                    cosphiInductive[1] = cosphi1.meassuredInductive;
                                     cosphi0.commandSampling();
                                     break;
                                 
                                 case 2:
                                     cosphiMeassures[2] = cosphi2.getCosPhi();
+                                    cosphiInductive[2] = cosphi2.meassuredInductive;
                                     cosphi1.commandSampling();
                                     break;
 
@@ -149,6 +151,7 @@ bool Lab::task()
                     if(meassuresDone >= 7)
                     {
                         cosphiMeassures[0] = cosphi0.getCosPhi();
+                        cosphiInductive[0] = cosphi0.meassuredInductive;
                         busy = false;
                     }
                 }
@@ -183,7 +186,7 @@ bool Lab::doLab(const char * circuitConfig)
         
         if(compare != 0)
         {
-            Serial.println("Circuit config ok. Commanding samples...");
+            Serial.println("\nCircuit config ok. Commanding samples...");
             labResults.clear(); // erases the previous JSON 
             #ifdef LAB_TYPE_S
                 labResults["lab"] = "series";
@@ -219,83 +222,146 @@ bool Lab::doLab(const char * circuitConfig)
 
 DynamicJsonDocument * Lab::getLabResults(bool fullOutput)
 {
-    float tempValue;
     float values[SAMPLES_ARRAY_SIZE];
     int16_t * samplesBuffer;
     for(uint8_t j = 0; j < 4; j++)
     {
-        switch (j)
-        {
-            // add X-macro to handle all channels and another for all cosphi.
-            // then replicate inside #ifdef for series circuit config
+        #ifdef LAB_TYPE_S
+            switch (j)
+            {
+                #define NODES                                   \
+                    X("voltage_A_values", "voltage_A_RMS", 0)   \
+                    X("voltage_B_values", "voltage_B_RMS", 1)   \
+                    X("voltage_C_values", "voltage_C_RMS", 2)
 
-            case 0:
-                samplesBuffer = adc.getLastChannelSamples(0, false);
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 0);
-                    samplesBuffer++;
-                    if(fullOutput)
+                #define X(letterValues, letterRMS, number)                                      \
+                    case number:                                                                \
+                        samplesBuffer = adc.getLastChannelSamples(number, false);               \
+                        for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++) {                       \
+                            values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer,   \
+                            VOLTAGE_DIVIDER_FACTOR, number); samplesBuffer++;                   \
+                            if(fullOutput) {                                                    \
+                                labResults[letterValues][i] = truncFloat3(values[i]); } }       \
+                        labResults[letterRMS] = truncFloat3(calculateRMSValue(                  \
+                        &values[0], SAMPLES_ARRAY_SIZE));                                       \
+                        break;
+                    NODES
+                #undef X
+                
+                case 3:
+                    samplesBuffer = adc.getLastChannelSamples(3, false);
+                    for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
                     {
-                        labResults["current_A_values"][i] = truncFloat3(values[i]);
+                        values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 3);
+                        samplesBuffer++;
+                        if(fullOutput)
+                        {
+                            labResults["current_values"][i] = truncFloat3(values[i]);
+                        }
                     }
-                }
-                labResults["current_A_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
-                break;
+                    labResults["current_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
+                    break;
 
-            case 1:
-                samplesBuffer = adc.getLastChannelSamples(1, false);
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 1);
-                    samplesBuffer++;
-                    if(fullOutput)
-                    {
-                        labResults["current_B_values"][i] = truncFloat3(values[i]);
-                    }
-                }
-                labResults["current_B_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
-                break;
+                default:
+                    break;
+            }
+/*
+            float tempValues[3];
+            tempValues[0] = labResults["voltage_A_RMS"];
+            tempValues[1] = labResults["voltage_B_RMS"];
+            tempValues[2] = labResults["voltage_C_RMS"];
 
-            case 2:
-                samplesBuffer = adc.getLastChannelSamples(2, false);
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 2);
-                    samplesBuffer++;
-                    if(fullOutput)
-                    {
-                        labResults["current_C_values"][i] = truncFloat3(values[i]);
-                    }
-                }
-                labResults["current_C_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
-                break;
+            // if relay 1 connected to GND the V drops are as meassured
+            // else if relay 1 connected to the transformer do:
 
-            case 3:
-                samplesBuffer = adc.getLastChannelSamples(3, false);
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+            // drops ok for NEG = transformer (in resistive)
+            labResults["voltage_AB_RMS"] = tempValues[0] - tempValues[1];
+            labResults["voltage_BC_RMS"] = 2 * tempValues[0] - (tempValues[0] - tempValues[1]) - (2 * tempValues[2]);
+            labResults["voltage_CNEG_RMS"] = 2 * tempValues[2];
+*/
+            String cosphiValue;
+
+            cosphiValue = truncFloat3(cosphiMeassures[0]);
+            cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+            labResults["node_A_cosphi"] = cosphiValue;
+            cosphiValue = "";
+
+            cosphiValue = truncFloat3(cosphiMeassures[1]);
+            cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+            labResults["node_B_cosphi"] = cosphiValue;
+            cosphiValue = "";
+
+            cosphiValue = truncFloat3(cosphiMeassures[2]);
+            cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+            labResults["node_C_cosphi"] = cosphiValue;
+            cosphiValue = "";
+
+        #else
+            #ifdef LAB_TYPE_P
+                switch (j)
                 {
-                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, VOLTAGE_DIVIDER_FACTOR, 3);
-                    samplesBuffer++;
-                    if(fullOutput)
-                    {
-                        labResults["voltage_values"][i] = truncFloat3(values[i]);
-                    }
+                    #define BRANCHES                                \
+                        X("current_A_values", "current_A_RMS", 0)   \
+                        X("current_B_values", "current_B_RMS", 1)   \
+                        X("current_C_values", "current_C_RMS", 2)
+
+                    #define X(letterValues, letterRMS, number)                                      \
+                        case number:                                                                \
+                            samplesBuffer = adc.getLastChannelSamples(number, false);               \
+                            for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++) {                       \
+                                values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer,   \
+                                CURRENT_AMPLIFIER_FACTOR, number); samplesBuffer++;                 \
+                                if(fullOutput) {                                                    \
+                                    labResults[letterValues][i] = truncFloat3(values[i]); } }       \
+                            labResults[letterRMS] = truncFloat3(calculateRMSValue(                  \
+                            &values[0], SAMPLES_ARRAY_SIZE));                                       \
+                            break;
+                        BRANCHES
+                    #undef X
+                    
+                    case 3:
+                        samplesBuffer = adc.getLastChannelSamples(3, false);
+                        for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+                        {
+                            values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, VOLTAGE_DIVIDER_FACTOR, 3);
+                            samplesBuffer++;
+                            if(fullOutput)
+                            {
+                                labResults["voltage_values"][i] = truncFloat3(values[i]);
+                            }
+                        }
+                        labResults["voltage_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
+                        break;
+
+                    default:
+                        break;
                 }
-                labResults["voltage_RMS"] = truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE));
-                break;
-            
-            default:
-                break;
-        }
+
+                String cosphiValue = "";
+
+                cosphiValue = truncFloat3(cosphiMeassures[0]);
+                cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["branch_A_cosphi"] = cosphiValue;
+                cosphiValue = "";
+
+                cosphiValue = truncFloat3(cosphiMeassures[1]);
+                cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["branch_B_cosphi"] = cosphiValue;
+                cosphiValue = "";
+
+                cosphiValue = truncFloat3(cosphiMeassures[2]);
+                cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["branch_C_cosphi"] = cosphiValue;
+                cosphiValue = "";
+
+            #endif
+        #endif
+
     }
-    
-    labResults["branch_A_cosphi"] = truncFloat3(cosphiMeassures[0]);
-    labResults["branch_B_cosphi"] = truncFloat3(cosphiMeassures[1]);
-    labResults["branch_C_cosphi"] = truncFloat3(cosphiMeassures[2]);
 
     return &labResults;
 }
+
 
 bool Lab::enableRelays()
 {
@@ -304,6 +370,7 @@ bool Lab::enableRelays()
     byteEncoder.enableOutput(true); 
     return true;
 }
+
 
 float * Lab::getADCDCOffsetVolts()
 {
