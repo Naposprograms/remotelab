@@ -1,14 +1,17 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <nwkconfig.h>
+
 #define ESP32 1
+#define KILOBYTE 1024
 
 // LAB
 #define LAB_TYPE_S 's'
 #ifndef LAB_TYPE_S
     #define LAB_TYPE_P 'p'
 #endif // = 's' for series, 'p' for parallel
-
+ 
 
 // PINS
 #define BAUD_RATE 115200

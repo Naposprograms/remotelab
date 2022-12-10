@@ -60,6 +60,7 @@ bool CosPhi::validation()
     */
     if(abs(difference) > quarterPeriodMicroSeconds)
     {
+        Serial.printf("uI = %d uV = %d\n", microsCurrent, microsVoltage);
         if(negativePeriodMicroSeconds < difference && difference < negativePeriodMicroSeconds + quarterPeriodMicroSeconds)
         {
             microsVoltage -= PERIOD_IN_MS * 1000;
@@ -67,9 +68,17 @@ bool CosPhi::validation()
         }
         else
         {
-            //Serial.printf("Invalid cosphi meassure. Difference = %d\n", difference);
-            validMeassure = false;
-            attempts++;
+            if(-1 * negativePeriodMicroSeconds < difference && difference < -1 * (negativePeriodMicroSeconds + quarterPeriodMicroSeconds))
+            {
+                microsCurrent -= PERIOD_IN_MS * 1000;
+                difference = microsCurrent - microsVoltage;
+            }
+            else
+            {
+                Serial.printf("Invalid cosphi meassure. Difference = %d\n", difference);
+                validMeassure = false;
+                attempts++;
+            }
         }
     }
 
@@ -112,7 +121,7 @@ bool CosPhi::task()
     {
         missingLoad = true;
         valueReady = true;
-        //Serial.println("Cosphi timer elapsed");
+        Serial.println("Cosphi timer elapsed");
     }
 
     return valueReady;

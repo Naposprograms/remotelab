@@ -11,7 +11,6 @@
 #include <shifter.h>
 
 
-#define KILOBYTE 1024
 static DynamicJsonDocument labResults((unsigned long) 10 * KILOBYTE);
 
 static Shifter byteEncoder(SHIFTER_LATCH_PIN, SHIFTER_CLOCK_PIN, SHIFTER_DATA_PIN, SHIFTER_ENABLE_PIN);
@@ -27,7 +26,8 @@ class Lab {
         bool commandSampling = false;
         bool valueAvailable = false;
         bool waitingRelays = false;
-        const char * forbiddenConfig = "00011100";
+        bool errorMsg = false;
+        uint8_t forbiddenConfigSwitches[3] = {2, 5, 8};
         uint8_t missingMeassures, meassuresDone = 0;
         // for cosphi to work, since the values are global due to the interrupts,
         // once there's a value available it should be storaged before it's replaced.
@@ -117,10 +117,7 @@ class Lab {
          *                      false to receive only the RMS values
          * @return const char * to JSON text of the lab results
          */
-        DynamicJsonDocument * getLabResults(bool fullOutput);
-
-
-        const char * getErrorMsg();
+        DynamicJsonDocument * getLabResults(bool fullOutput, bool labIsCorrect);
 
         bool begin(TwoWire * usedWire);
 
@@ -129,7 +126,10 @@ class Lab {
         bool enableRelays();
 
         float * getADCDCOffsetVolts();
+
+        void writeErrorMsgToJSON(const char * errorMessage);
         
+        bool checkBusy();
 };
 
 #endif
