@@ -23,6 +23,7 @@ bool sampling = false;
 bool calibrating = false;
 bool correctLab;
 bool firstLoop = true;
+bool resultsReady = false;
 
 DynamicJsonDocument * labJSON;
 
@@ -31,10 +32,11 @@ DynamicJsonDocument * labJSON;
 */
 WebServer server(80);
 void handlePost();
+void sendMeasurement();
 
 void setup_routing()
 {
-    //server.on("/measurement", sendMeasurement);
+    server.on("/measurement", sendMeasurement);
     server.on("/options", HTTP_POST, handlePost);
     server.begin();    
 }
@@ -71,10 +73,7 @@ void handlePost()
         server.send(200, "text/plain", "Body not received");
         return;
     }
-
     deserializeJson(jsonDocument, server.arg("plain"));
-
-    
     correctLab = false;
     #ifdef LAB_TYPE_S
         if(jsonDocument["lab"] == "series")
@@ -82,24 +81,33 @@ void handlePost()
             correctLab = true;
         }
     #else
-        if(jsonDocument["lab"] == "parallel")
-        {
-            correctLab = true;
-        }
-    #endif    
-
-
-    String config = jsonDocument["circuitconfig"];
-    char labConfig[9];
-    config.toCharArray(&labConfig[0], 9, 0); 
-    Serial.printf("Lab config: %s\n", labConfig);
-    if(lab.checkBusy())
+        #ifdef LAB_TYPE_P
+            if(jsonDocument["lab"] == "parallel")
+            {
+                correctLab = true;
+            }
+        #endif
+    #endif
+    
+    if(correctLab)
     {
-        Serial.println("Lab Busy");
+        // if shortcircuit config sampling is true anyway
+        String config = jsonDocument["circuitconfig"];
+        char labConfig[9];
+        config.toCharArray(&labConfig[0], 9, 0); 
+        Serial.printf("Lab config: %s\n", labConfig);
+        if(lab.checkBusy())
+        {
+            Serial.println("Lab Busy");
+        }
+        else
+        {
+            sampling = lab.doLab(&labConfig[0]);
+        }
     }
     else
     {
-        sampling = lab.doLab(&labConfig[0]);
+        sampling = true;
     }
     Serial.printf("Sampling: %d\n", sampling);
 
@@ -116,19 +124,29 @@ void initWifi()
 }
 
 
-/*
-
 void sendMeasurement()
 {
-    jsonDocument.clear();
-    add_json_object(lab, circuitconfig, node_A_RMS, node_A_values[0], node_B_RMS, node_B_values[0], node_C_RMS, node_C_values[0], current_RMS, current_values[0], node_A_cosphi, node_B_cosphi, node_C_cosphi);
-    serializeJson(jsonDocument, buffer);
-    //server.send(200, "application/json", buffer);
-    //reemplzar buffer por serializeJSON
-    ;
+    if(sampling)
+    {
+        if(resultsReady)
+        {
+            String resultsJSON;
+            if(!correctLab)
+            {
+                lab.writeErrorMsgToJSON("Wrong practice");
+            }
+            labJSON = lab.getLabResults(false, correctLab);
+            serializeJsonPretty(* labJSON, resultsJSON);
+            sampling = false;
+            jsonDocument.clear();
+            server.send(200, "application/json", resultsJSON);
+        }
+        else
+        {
+            server.send(200, "application/json", "busy");
+        }
+    }
 }
-
-*/
 
 /**
  * END COMMUNICATION MODULE
@@ -160,12 +178,14 @@ void loop()
     {
         if(lab.task()) // true when the lab is finished or the device is idle
         {
-            Serial.println("Lab task true");
             if(sampling)
             {
+                resultsReady = true;
+                /*
                 labJSON = lab.getLabResults(false, correctLab);
                 serializeJsonPretty(* labJSON, Serial);
                 sampling = false;
+                */
             }
             if(calibrating)
             {
