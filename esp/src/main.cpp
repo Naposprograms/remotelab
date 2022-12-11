@@ -9,10 +9,13 @@
 
 // Global objects
 AliveLed ledAlive(LED_ALIVE_PIN, LED_ALIVE_TIME_ON, LED_ALIVE_TIME_OFF);
-SignalLed ledSignal(LED_SIGNAL_PIN, LED_SIGNAL_TIME_ON, LED_SIGNAL_TIME_OFF);
-Button sampleButton(PUSH_BUTTON_PIN, ACTIVE_LOW);
+//SignalLed ledSignal(LED_SIGNAL_PIN, LED_SIGNAL_TIME_ON, LED_SIGNAL_TIME_OFF);
+//Button sampleButton(PUSH_BUTTON_PIN, ACTIVE_LOW);
+SignalLed ledWiFiConnected(LED_SIGNAL_PIN, LED_SIGNAL_TIME_ON, LED_SIGNAL_TIME_OFF);
 Lab lab;
 Timer calibrationTimer;
+Timer labTimeout;
+
 
 const char * ssid = PRIVATE_SSID;
 const char * password = PRIVATE_PASSWORD;
@@ -24,12 +27,15 @@ bool calibrating = false;
 bool correctLab;
 bool firstLoop = true;
 bool resultsReady = false;
+uint32_t reconnectDelay = 1000;
+bool wifiConnected = false;
 
 DynamicJsonDocument * labJSON;
 
 /**
  * BEGIN COMMUNICATION MODULE
 */
+
 WebServer server(80);
 void handlePost();
 void sendMeasurement();
@@ -45,6 +51,7 @@ void setup_routing()
 // WiFi Connection Event
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
     Serial.println("Connected to WiFi successfully!");
+    wifiConnected = true;
 }
 
 // Got IP Event
@@ -57,13 +64,13 @@ void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
 
 // WiFI Disconnection Event
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+    wifiConnected = false;
     Serial.print("No WiFi connection. Reason: ");
     Serial.println(info.wifi_sta_disconnected.reason);
     Serial.println("Trying to connect");
     WiFi.begin(ssid, password);
-    //delay (1000);
+    delay (reconnectDelay);
 }
-
 
 
 StaticJsonDocument <512> jsonDocument;
@@ -146,6 +153,10 @@ void sendMeasurement()
             server.send(200, "application/json", "busy");
         }
     }
+    else
+    {
+        server.send(200, "application/json", "Lab config needed");
+    }
 }
 
 /**
@@ -172,8 +183,13 @@ void setup()
 void loop()
 {
     ledAlive.taskAliveLed();
-    ledSignal.taskSignalLed();
+    ledWiFiConnected.taskSignalLed();
 
+    if(!wifiConnected)
+    {
+        ledWiFiConnected.blink(1);
+    }
+    
     if(sampling || calibrating)
     {
         if(lab.task()) // true when the lab is finished or the device is idle
@@ -200,6 +216,7 @@ void loop()
                 {
                     initWifi();
                     firstLoop = false;
+                    reconnectDelay = RECONNECT_DELAY_MS;
                 }
             }
         }

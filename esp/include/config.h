@@ -30,12 +30,16 @@
     #define VOLTAGE_0_ZERO_CROSS_SIGNAL_PIN 16
     #define VOLTAGE_1_ZERO_CROSS_SIGNAL_PIN 4
     #define VOLTAGE_2_ZERO_CROSS_SIGNAL_PIN 15
+
+    #define RECONNECT_DELAY_MS 58013
 #else
     #ifdef LAB_TYPE_P
         #define VOLTAGE_ZERO_CROSS_SIGNAL_PIN 17
         #define CURRENT_0_ZERO_CROSS_SIGNAL_PIN 16
         #define CURRENT_1_ZERO_CROSS_SIGNAL_PIN 4
         #define CURRENT_2_ZERO_CROSS_SIGNAL_PIN 15
+
+        #define RECONNECT_DELAY_MS 62003
     #endif
 #endif
 

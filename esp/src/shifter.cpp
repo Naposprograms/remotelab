@@ -56,7 +56,8 @@ void Shifter::setOutputByUInt(uint8_t outputCode, bool invertLogic)
     {
         outputCode = ~outputCode;
     }
-    shiftOut(data, clock, MSBFIRST, outputCode);
+    // changed MSBFIRST for LSBFIRST
+    shiftOut(data, clock, LSBFIRST, outputCode);
     digitalWrite(latch, HIGH);
 }
 
