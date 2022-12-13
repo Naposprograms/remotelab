@@ -144,7 +144,7 @@ void sendMeasurement()
             {
                 lab.writeErrorMsgToJSON("Wrong practice");
             }
-            labJSON = lab.getLabResults(false, correctLab);
+            labJSON = lab.getLabResults(true, correctLab);
             serializeJsonPretty(* labJSON, resultsJSON);
             sampling = false;
             jsonDocument.clear();

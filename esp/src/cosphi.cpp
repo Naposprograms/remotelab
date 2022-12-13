@@ -137,7 +137,6 @@ void CosPhi::commandSampling()
 }
 
 
-
 float CosPhi::getCosPhi()
 {
     valueReady = false;
@@ -150,4 +149,13 @@ float CosPhi::getCosPhi()
     {
         return cos(2 * PI * (diff / (1000.0 * PERIOD_IN_MS)));
     }
+}
+
+
+void CosPhi::setCosPhiValue(int16_t currentToVoltageLagms, bool inductive)
+{
+    microsCurrent = currentToVoltageLagms;
+    microsVoltage = 0;
+    meassuredInductive = inductive;
+    valueReady = true;
 }

@@ -21,13 +21,16 @@ class Lab {
     private:
         // c reallocation https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
         
+        uint8_t serialIndex = 0;
+
         bool busy = false;
         bool calibratingADC = false;
         bool commandSampling = false;
         bool valueAvailable = false;
         bool waitingRelays = false;
         bool errorMsg = false;
-        uint8_t forbiddenConfigSwitches[3] = {2, 5, 8};
+        uint8_t forbiddenConfigSwitches[3] = {2, 8, 5};
+        bool nodeShorted[3] = {false, false, false};
         uint8_t missingMeassures, meassuresDone = 0;
         // for cosphi to work, since the values are global due to the interrupts,
         // once there's a value available it should be storaged before it's replaced.
@@ -130,6 +133,8 @@ class Lab {
         void writeErrorMsgToJSON(const char * errorMessage);
         
         bool checkBusy();
+
+        //void writeToLabJSONSerial(const char * serialMessage);
 };
 
 #endif

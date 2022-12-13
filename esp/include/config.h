@@ -8,7 +8,7 @@
 #define LAB_TIMEOUT_MS 120000
 
 // LAB
-//#define LAB_TYPE_S 's'
+#define LAB_TYPE_S 's'
 #ifndef LAB_TYPE_S
     #define LAB_TYPE_P 'p'
 #endif // = 's' for series, 'p' for parallel

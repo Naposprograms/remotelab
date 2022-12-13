@@ -45,6 +45,8 @@ class CosPhi {
 
         bool meassuredInductive = false;
 
+        void setCosPhiValue(int16_t currentToVoltageLagms, bool inductive);
+
 };
 
 #endif
