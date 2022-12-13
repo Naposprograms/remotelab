@@ -300,7 +300,6 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                         default:
                             break;
                     }
-        /*
                     float tempValues[3];
                     tempValues[0] = labResults["voltage_A_RMS"];
                     tempValues[1] = labResults["voltage_B_RMS"];
@@ -313,7 +312,8 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                     labResults["voltage_AB_RMS"] = tempValues[0] - tempValues[1];
                     labResults["voltage_BC_RMS"] = 2 * tempValues[0] - (tempValues[0] - tempValues[1]) - (2 * tempValues[2]);
                     labResults["voltage_CNEG_RMS"] = 2 * tempValues[2];
-        */
+
+
                     String cosphiValue;
 
                     cosphiValue = truncFloat3(cosphiMeassures[0]);

@@ -110,11 +110,13 @@ void handlePost()
         else
         {
             sampling = lab.doLab(&labConfig[0]);
+            labTimeout.set(LAB_TIMEOUT_MS);
         }
     }
     else
     {
         sampling = true;
+        labTimeout.set(LAB_TIMEOUT_MS);
     }
     Serial.printf("Sampling: %d\n", sampling);
 
@@ -197,11 +199,14 @@ void loop()
             if(sampling)
             {
                 resultsReady = true;
-                /*
-                labJSON = lab.getLabResults(false, correctLab);
-                serializeJsonPretty(* labJSON, Serial);
-                sampling = false;
-                */
+                
+                if(labTimeout.elapsed())
+                {
+                    lab.getLabResults(false, correctLab);
+                    Serial.println("Lab results timed out");
+                    sampling = false;
+                }
+                
             }
             if(calibrating)
             {

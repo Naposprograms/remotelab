@@ -5,9 +5,10 @@
 
 #define ESP32 1
 #define KILOBYTE 1024
+#define LAB_TIMEOUT_MS 120000
 
 // LAB
-#define LAB_TYPE_S 's'
+//#define LAB_TYPE_S 's'
 #ifndef LAB_TYPE_S
     #define LAB_TYPE_P 'p'
 #endif // = 's' for series, 'p' for parallel
@@ -31,7 +32,8 @@
     #define VOLTAGE_1_ZERO_CROSS_SIGNAL_PIN 4
     #define VOLTAGE_2_ZERO_CROSS_SIGNAL_PIN 15
 
-    #define RECONNECT_DELAY_MS 58013
+    //#define RECONNECT_DELAY_MS 58013
+    #define RECONNECT_DELAY_MS 1000
 #else
     #ifdef LAB_TYPE_P
         #define VOLTAGE_ZERO_CROSS_SIGNAL_PIN 17
@@ -39,7 +41,8 @@
         #define CURRENT_1_ZERO_CROSS_SIGNAL_PIN 4
         #define CURRENT_2_ZERO_CROSS_SIGNAL_PIN 15
 
-        #define RECONNECT_DELAY_MS 62003
+        //#define RECONNECT_DELAY_MS 62003
+        #define RECONNECT_DELAY_MS 1000
     #endif
 #endif
 
