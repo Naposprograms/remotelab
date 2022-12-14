@@ -130,12 +130,12 @@ bool CosPhi::task()
 }
 
 
-void CosPhi::commandSampling()
+void CosPhi::commandSampling(uint16_t delayTimeout)
 {
     triggerSampling = true;
     attempts = 0;
     missingLoad = false;
-    meassureTimeOut.set(PERIOD_IN_MS * 5);
+    meassureTimeOut.set(delayTimeout + PERIOD_IN_MS * 5);
 }
 
 

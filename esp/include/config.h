@@ -8,7 +8,7 @@
 #define LAB_TIMEOUT_MS 120000
 
 // LAB
-//#define LAB_TYPE_S 's'
+#define LAB_TYPE_S 's'
 #ifndef LAB_TYPE_S
     #define LAB_TYPE_P 'p'
 #endif // = 's' for series, 'p' for parallel
@@ -63,6 +63,6 @@
 #define CURRENT_AMPLIFIER_FACTOR 0.1 // the amplifier has gain x10 so the measure should be shrinked by 0.1
 #define TIME_BETWEEN_CALIBRATIONS_MS 15 * 60 * 1000 // 15 minutes in ms
 
-#define WAIT_TIME_AFTER_SWITCHING_RELAYS 500
+#define WAIT_TIME_AFTER_SWITCHING_RELAYS 1000
 
 #endif

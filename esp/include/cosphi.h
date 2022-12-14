@@ -39,7 +39,7 @@ class CosPhi {
 
         bool task();
 
-        void commandSampling();
+        void commandSampling(uint16_t delayTimeout);
 
         float getCosPhi();
 

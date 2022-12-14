@@ -82,6 +82,23 @@ bool Lab::task()
                     {
                         if(missingMeassures < 4) // the adc channels are done, go on with cosphi
                         {
+                            #ifdef LAB_TYPE_S
+                                const char * labConfig = labResults["circuitconfig"];
+                                char requestedConfig[9];
+                                for(uint8_t i = 0; i < 8; i++)
+                                {
+                                    requestedConfig[i] = * labConfig;
+                                    labConfig++;
+                                }
+                                requestedConfig[8] = '\0';
+                                char byteToSend[8];
+                                for(uint8_t i = 0; i < 8; i++)
+                                {
+                                    byteToSend[i] = requestedConfig[i];
+                                }
+
+
+                            #endif
                             commandSampling = false;
                             switch (missingMeassures)
                             {
@@ -89,10 +106,32 @@ bool Lab::task()
                                     cosphiMeassures[1] = cosphi1.getCosPhi();
                                     cosphiInductive[1] = cosphi1.meassuredInductive;
                                     #ifdef LAB_TYPE_S
-                                        noMeassure[0] ? cosphi0.setCosPhiValue(0, true) : cosphi0.commandSampling();
+                                        if(noMeassure[0])
+                                        {
+                                            cosphi0.setCosPhiValue(0, true);
+                                        }
+                                        else
+                                        {
+                                            // for meassuring cosphi0, cosphi1 and cosphi2 are shorted.
+                                            if(byteToSend[forbiddenConfigSwitches[0]-1] = '0') // double check 
+                                            {
+                                                byteToSend[forbiddenConfigSwitches[1]-1] = '1';
+                                                byteToSend[forbiddenConfigSwitches[2]-1] = '1';
+                                                byteEncoder.setOutputByUInt(0, true); // powers off relays
+                                                delay(50);
+                                                byteEncoder.setOutputByChar(&byteToSend[0], true);
+                                                waitingRelays = true;
+                                                relaysTimer.set(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                                cosphi0.commandSampling(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                            }
+                                            else
+                                            {
+                                                cosphi0.setCosPhiValue(0, true);
+                                            }
+                                        }
                                         #else
                                         #ifdef LAB_TYPE_P
-                                        noMeassure[0] ? cosphi0.setCosPhiValue(5000, false) : cosphi0.commandSampling();
+                                        noMeassure[0] ? cosphi0.setCosPhiValue(5000, false) : cosphi0.commandSampling(0);
                                         #endif
                                     #endif
                                     break;
@@ -101,20 +140,64 @@ bool Lab::task()
                                     cosphiMeassures[2] = cosphi2.getCosPhi();
                                     cosphiInductive[2] = cosphi2.meassuredInductive;
                                     #ifdef LAB_TYPE_S
-                                        noMeassure[1] ? cosphi1.setCosPhiValue(0, true) : cosphi1.commandSampling();
+                                        if(noMeassure[1])
+                                        {
+                                            cosphi1.setCosPhiValue(0, true);
+                                        }
+                                        else
+                                        {
+                                            // for meassuring cosphi1, cosphi0 and cosphi2 are shorted.
+                                            if(byteToSend[forbiddenConfigSwitches[1]-1] = '0') // double check 
+                                            {
+                                                byteToSend[forbiddenConfigSwitches[0]-1] = '1';
+                                                byteToSend[forbiddenConfigSwitches[2]-1] = '1';
+                                                byteEncoder.setOutputByUInt(0, true); // powers off relays
+                                                delay(50);
+                                                byteEncoder.setOutputByChar(&byteToSend[0], true);
+                                                waitingRelays = true;
+                                                relaysTimer.set(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                                cosphi1.commandSampling(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                            }
+                                            else
+                                            {
+                                                cosphi1.setCosPhiValue(0, true);
+                                            }
+                                        }
                                         #else
                                         #ifdef LAB_TYPE_P
-                                        noMeassure[1] ? cosphi1.setCosPhiValue(5000, false) : cosphi1.commandSampling();
+                                        noMeassure[1] ? cosphi1.setCosPhiValue(5000, false) : cosphi1.commandSampling(0);
                                         #endif
                                     #endif
                                     break;
 
                                 case 3:
                                     #ifdef LAB_TYPE_S
-                                        noMeassure[2] ? cosphi2.setCosPhiValue(0, true) : cosphi2.commandSampling();
+                                        if(noMeassure[2])
+                                        {
+                                            cosphi2.setCosPhiValue(0, true);
+                                        }
+                                        else
+                                        {
+                                            // for meassuring cosphi2, cosphi0 and cosphi1 are shorted.
+                                            if(byteToSend[forbiddenConfigSwitches[2]-1] = '0') // double check 
+                                            {                                            
+                                                byteToSend[forbiddenConfigSwitches[0]-1] = '1';
+                                                byteToSend[forbiddenConfigSwitches[1]-1] = '1';
+                                                byteEncoder.setOutputByUInt(0, true); // powers off relays
+                                                delay(50);
+                                                byteEncoder.setOutputByChar(&byteToSend[0], true);
+                                                waitingRelays = true;
+                                                relaysTimer.set(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                                cosphi2.commandSampling(WAIT_TIME_AFTER_SWITCHING_RELAYS);
+                                            }
+                                            else
+                                            {
+                                                cosphi2.setCosPhiValue(0, true);
+                                            }
+                                        }
                                         #else
                                         #ifdef LAB_TYPE_P
-                                        noMeassure[2] ? cosphi2.setCosPhiValue(5000, false) : cosphi2.commandSampling();
+                                        noMeassure[2] ? cosphi2.setCosPhiValue(5000, false) : cosphi2.commandSampling(0);
                                         #endif
                                     #endif
                                     break;
@@ -304,6 +387,11 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
             {
                 multiplier++;
             }
+            #ifdef LAB_TYPE_S
+                uint8_t closestToZeroIndexes[3] = {0, 0, 0};
+                float closestToZeroValues[3] = {100.0, 100.0, 100.0};
+                float voltageMeassures[SAMPLES_ARRAY_SIZE][3];
+            #endif
 
             for(uint8_t j = 0; j < 4; j++)
             {
@@ -321,8 +409,11 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                                 for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++) {                       \
                                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer,   \
                                     VOLTAGE_DIVIDER_FACTOR, number) * multiplier; samplesBuffer++;      \
-                                    if(fullOutput) {                                                    \
-                                        labResults[letterValues][i] = truncFloat3(values[i]); } }       \
+                                    if(values[i] >= 0.0 && values[i] < closestToZeroValues[number]) {   \
+                                    closestToZeroIndexes[number] = i; closestToZeroValues[number] =     \
+                                    values[i]; } voltageMeassures[i][number] = values[i];               \
+                                    if(fullOutput) { labResults[letterValues][i] =                      \
+                                    truncFloat3(values[i]); } }                                         \
                                 labResults[letterRMS] = truncFloat3(calculateRMSValue(                  \
                                 &values[0], SAMPLES_ARRAY_SIZE));                                       \
                                 break;
@@ -413,6 +504,63 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
             String cosphiValue = "";
 
             #ifdef LAB_TYPE_S
+
+                /*
+                float voltageDrops[SAMPLES_ARRAY_SIZE][3];
+                uint8_t startIndex = closestToZeroIndexes[2];
+                uint8_t currentIndex = startIndex;
+                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+                {
+                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
+                    {
+                        currentIndex = 0;
+                    }
+                    voltageDrops[i][2] = voltageMeassures[currentIndex][2];
+                    currentIndex++;
+                }
+                
+                startIndex = closestToZeroIndexes[1];
+                currentIndex = startIndex;
+                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+                {
+                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
+                    {
+                        currentIndex = 0;
+                    }
+                    voltageDrops[i][1] = voltageMeassures[currentIndex][1] - voltageDrops[i][2];
+                    labResults["voltage_BC_values"][i] = voltageDrops[i][1];
+                    currentIndex++;
+                }
+                
+                startIndex = closestToZeroIndexes[0];
+                currentIndex = startIndex;
+                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
+                {
+                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
+                    {
+                        currentIndex = 0;
+                    }
+                    voltageDrops[i][0] = voltageMeassures[currentIndex][0] - voltageDrops[i][1];
+                    labResults["voltage_AB_values"][i] = voltageDrops[i][0];
+                    currentIndex++;
+                }
+                
+                labResults["voltage_A_RMS"] = truncFloat3(calculateRMSValue(&voltageDrops[0][0], SAMPLES_ARRAY_SIZE));
+                labResults["voltage_B_RMS"] = truncFloat3(calculateRMSValue(&voltageDrops[0][1], SAMPLES_ARRAY_SIZE));
+
+                */
+                float tempValues[3];
+                tempValues[0] = labResults["voltage_A_RMS"];
+                tempValues[1] = labResults["voltage_B_RMS"];
+                tempValues[2] = labResults["voltage_C_RMS"];
+
+                // if relay 1 connected to GND the V drops are as meassured
+                // else if relay 1 connected to the transformer do:
+
+                // drops ok for NEG = transformer (in resistive)
+                labResults["voltage_A_RMS"] = abs(tempValues[0] - tempValues[1]);
+                labResults["voltage_B_RMS"] = abs(tempValues[0] - (tempValues[0] - tempValues[1]) - tempValues[2]);
+
                 
                 cosphiValue = truncFloat3(cosphiMeassures[0]);
                 cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
