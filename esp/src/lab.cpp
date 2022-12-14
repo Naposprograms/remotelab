@@ -85,21 +85,38 @@ bool Lab::task()
                             commandSampling = false;
                             switch (missingMeassures)
                             {
-                                // see here for cases where a branch or node has no load and there should be no cosphi
                                 case 1:
                                     cosphiMeassures[1] = cosphi1.getCosPhi();
                                     cosphiInductive[1] = cosphi1.meassuredInductive;
-                                    cosphi0.commandSampling();
+                                    #ifdef LAB_TYPE_S
+                                        noMeassure[0] ? cosphi0.setCosPhiValue(0, true) : cosphi0.commandSampling();
+                                        #else
+                                        #ifdef LAB_TYPE_P
+                                        noMeassure[0] ? cosphi0.setCosPhiValue(5000, false) : cosphi0.commandSampling();
+                                        #endif
+                                    #endif
                                     break;
                                 
                                 case 2:
                                     cosphiMeassures[2] = cosphi2.getCosPhi();
                                     cosphiInductive[2] = cosphi2.meassuredInductive;
-                                    cosphi1.commandSampling();
+                                    #ifdef LAB_TYPE_S
+                                        noMeassure[1] ? cosphi1.setCosPhiValue(0, true) : cosphi1.commandSampling();
+                                        #else
+                                        #ifdef LAB_TYPE_P
+                                        noMeassure[1] ? cosphi1.setCosPhiValue(5000, false) : cosphi1.commandSampling();
+                                        #endif
+                                    #endif
                                     break;
 
                                 case 3:
-                                    cosphi2.commandSampling();
+                                    #ifdef LAB_TYPE_S
+                                        noMeassure[2] ? cosphi2.setCosPhiValue(0, true) : cosphi2.commandSampling();
+                                        #else
+                                        #ifdef LAB_TYPE_P
+                                        noMeassure[2] ? cosphi2.setCosPhiValue(5000, false) : cosphi2.commandSampling();
+                                        #endif
+                                    #endif
                                     break;
                                 
                                 default:
@@ -109,7 +126,6 @@ bool Lab::task()
                         else
                         {
                             commandSampling = false;
-                            // see here for changes for series voltage drop
                             adc.commandSampling(meassuresDone, SAMPLES_ARRAY_SIZE, SINGLE_CHANNEL_SAMPLING);
                         }
                     }
@@ -178,6 +194,13 @@ bool Lab::doLab(const char * circuitConfig)
         for(uint8_t i = 0; i < 8; i++)
         {
             requestedConfig[i] = * circuitConfig;
+            if(requestedConfig[i] != '0')
+            {
+                if(requestedConfig[i] != '1')
+                {
+                    requestedConfig[i] = '0'; // turns to 0 all possible values which are not 0 or 1.
+                }
+            }
             circuitConfig++;
         }
         requestedConfig[8] = '\0';
@@ -194,8 +217,10 @@ bool Lab::doLab(const char * circuitConfig)
         uint8_t wrongSwitches = 0;
         for(uint8_t i = 0; i < 3; i++)
         {
+            noMeassure[i] = false;
             if(requestedConfig[forbiddenConfigSwitches[i]-1] == forbiddenValue)
             {
+                noMeassure[i] = true;
                 wrongSwitches++;
             }
         }
@@ -206,7 +231,6 @@ bool Lab::doLab(const char * circuitConfig)
 
         if(validConfig)
         {
-            Serial.println("\nCircuit config ok. Commanding samples...");
             labResults.clear(); // erases the previous JSON 
             #ifdef LAB_TYPE_S
                 labResults["lab"] = "series";
@@ -259,6 +283,28 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
         int16_t * samplesBuffer;
         if(labIsCorrect)
         {
+            const char * labConfig = labResults["circuitconfig"];
+            char requestedConfig[9];
+            for(uint8_t i = 0; i < 8; i++)
+            {
+                requestedConfig[i] = * labConfig;
+                labConfig++;
+            }
+            requestedConfig[8] = '\0';
+            #ifdef LAB_TYPE_S
+                char forbiddenValue = '1';
+            #else
+                #ifdef LAB_TYPE_P
+                    char forbiddenValue = '0';
+                #endif
+            #endif
+
+            uint8_t multiplier = 1;
+            if(requestedConfig[0] == '1')
+            {
+                multiplier++;
+            }
+
             for(uint8_t j = 0; j < 4; j++)
             {
                 #ifdef LAB_TYPE_S
@@ -274,7 +320,7 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                                 samplesBuffer = adc.getLastChannelSamples(number, false);               \
                                 for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++) {                       \
                                     values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer,   \
-                                    VOLTAGE_DIVIDER_FACTOR, number); samplesBuffer++;                   \
+                                    VOLTAGE_DIVIDER_FACTOR, number) * multiplier; samplesBuffer++;      \
                                     if(fullOutput) {                                                    \
                                         labResults[letterValues][i] = truncFloat3(values[i]); } }       \
                                 labResults[letterRMS] = truncFloat3(calculateRMSValue(                  \
@@ -300,6 +346,7 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                         default:
                             break;
                     }
+                    /*
                     float tempValues[3];
                     tempValues[0] = labResults["voltage_A_RMS"];
                     tempValues[1] = labResults["voltage_B_RMS"];
@@ -312,24 +359,8 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                     labResults["voltage_AB_RMS"] = tempValues[0] - tempValues[1];
                     labResults["voltage_BC_RMS"] = 2 * tempValues[0] - (tempValues[0] - tempValues[1]) - (2 * tempValues[2]);
                     labResults["voltage_CNEG_RMS"] = 2 * tempValues[2];
+                    */
 
-
-                    String cosphiValue;
-
-                    cosphiValue = truncFloat3(cosphiMeassures[0]);
-                    cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                    labResults["node_A_cosphi"] = cosphiValue;
-                    cosphiValue = "";
-
-                    cosphiValue = truncFloat3(cosphiMeassures[1]);
-                    cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                    labResults["node_B_cosphi"] = cosphiValue;
-                    cosphiValue = "";
-
-                    cosphiValue = truncFloat3(cosphiMeassures[2]);
-                    cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                    labResults["node_C_cosphi"] = cosphiValue;
-                    cosphiValue = "";
 
                 #else
                     #ifdef LAB_TYPE_P
@@ -346,10 +377,12 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                                     for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++) {                       \
                                         values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer,   \
                                         CURRENT_AMPLIFIER_FACTOR, number); samplesBuffer++;                 \
-                                        if(fullOutput) {                                                    \
-                                            labResults[letterValues][i] = truncFloat3(values[i]); } }       \
-                                    labResults[letterRMS] = truncFloat3(calculateRMSValue(                  \
-                                    &values[0], SAMPLES_ARRAY_SIZE));                                       \
+                                        if(fullOutput) { if(!noMeassure[number]) {                          \
+                                            labResults[letterValues][i] = truncFloat3(values[i]); }         \
+                                        else { labResults[letterValues][i] = (double) 0.000; } } }          \
+                                    if(!noMeassure[number]) { labResults[letterRMS] =                       \
+                                    truncFloat3(calculateRMSValue(&values[0], SAMPLES_ARRAY_SIZE)); }       \
+                                    else { labResults[letterRMS] = (double) 0.000; }                        \
                                     break;
                                 BRANCHES
                             #undef X
@@ -358,7 +391,7 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                                 samplesBuffer = adc.getLastChannelSamples(3, false);
                                 for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
                                 {
-                                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, VOLTAGE_DIVIDER_FACTOR, 3);
+                                    values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, VOLTAGE_DIVIDER_FACTOR, 3) * multiplier;
                                     samplesBuffer++;
                                     if(fullOutput)
                                     {
@@ -372,27 +405,51 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                                 break;
                         }
 
-                        String cosphiValue = "";
-
-                        cosphiValue = truncFloat3(cosphiMeassures[0]);
-                        cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                        labResults["branch_A_cosphi"] = cosphiValue;
-                        cosphiValue = "";
-
-                        cosphiValue = truncFloat3(cosphiMeassures[1]);
-                        cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                        labResults["branch_B_cosphi"] = cosphiValue;
-                        cosphiValue = "";
-
-                        cosphiValue = truncFloat3(cosphiMeassures[2]);
-                        cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
-                        labResults["branch_C_cosphi"] = cosphiValue;
-                        cosphiValue = "";
-
                     #endif
                 #endif
 
             }
+
+            String cosphiValue = "";
+
+            #ifdef LAB_TYPE_S
+                
+                cosphiValue = truncFloat3(cosphiMeassures[0]);
+                cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["node_A_cosphi"] = cosphiValue;
+                cosphiValue = "";
+
+                cosphiValue = truncFloat3(cosphiMeassures[1]);
+                cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["node_B_cosphi"] = cosphiValue;
+                cosphiValue = "";
+
+                cosphiValue = truncFloat3(cosphiMeassures[2]);
+                cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                labResults["node_C_cosphi"] = cosphiValue;
+                cosphiValue = "";
+                
+                #else
+                #ifdef LAB_TYPE_P
+
+                    cosphiValue = truncFloat3(cosphiMeassures[0]);
+                    cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                    labResults["branch_A_cosphi"] = cosphiValue;
+                    cosphiValue = "";
+
+                    cosphiValue = truncFloat3(cosphiMeassures[1]);
+                    cosphiInductive[1] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                    labResults["branch_B_cosphi"] = cosphiValue;
+                    cosphiValue = "";
+
+                    cosphiValue = truncFloat3(cosphiMeassures[2]);
+                    cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
+                    labResults["branch_C_cosphi"] = cosphiValue;
+                    cosphiValue = "";
+
+                #endif
+            #endif
+
         }
         byteEncoder.setOutputByUInt(0, true); // powers off relays at the end of the lab.
     }

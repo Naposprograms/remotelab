@@ -30,7 +30,7 @@ class Lab {
         bool waitingRelays = false;
         bool errorMsg = false;
         uint8_t forbiddenConfigSwitches[3] = {2, 8, 5};
-        bool nodeShorted[3] = {false, false, false};
+        bool noMeassure[3] = {false, false, false};
         uint8_t missingMeassures, meassuresDone = 0;
         // for cosphi to work, since the values are global due to the interrupts,
         // once there's a value available it should be storaged before it's replaced.

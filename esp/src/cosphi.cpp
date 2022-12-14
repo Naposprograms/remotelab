@@ -68,7 +68,9 @@ bool CosPhi::validation()
         }
         else
         {
-            if(-1 * negativePeriodMicroSeconds < difference && difference < -1 * (negativePeriodMicroSeconds + quarterPeriodMicroSeconds))
+            // check if this was wrong -- I think the condition was never met.
+            //if(-1 * negativePeriodMicroSeconds < difference && difference < -1 * (negativePeriodMicroSeconds + quarterPeriodMicroSeconds))
+            if((-1 * negativePeriodMicroSeconds) - quarterPeriodMicroSeconds < difference && difference < -1 * negativePeriodMicroSeconds)
             {
                 microsCurrent -= PERIOD_IN_MS * 1000;
                 difference = microsCurrent - microsVoltage;
