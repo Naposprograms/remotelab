@@ -108,7 +108,7 @@ bool Lab::task()
                                     #ifdef LAB_TYPE_S
                                         if(noMeassure[0])
                                         {
-                                            cosphi0.setCosPhiValue(0, true);
+                                            cosphi0.setCosPhiValue(1, true);
                                         }
                                         else
                                         {
@@ -126,7 +126,7 @@ bool Lab::task()
                                             }
                                             else
                                             {
-                                                cosphi0.setCosPhiValue(0, true);
+                                                cosphi0.setCosPhiValue(1, true);
                                             }
                                         }
                                         #else
@@ -142,7 +142,7 @@ bool Lab::task()
                                     #ifdef LAB_TYPE_S
                                         if(noMeassure[1])
                                         {
-                                            cosphi1.setCosPhiValue(0, true);
+                                            cosphi1.setCosPhiValue(1, true);
                                         }
                                         else
                                         {
@@ -160,7 +160,7 @@ bool Lab::task()
                                             }
                                             else
                                             {
-                                                cosphi1.setCosPhiValue(0, true);
+                                                cosphi1.setCosPhiValue(1, true);
                                             }
                                         }
                                         #else
@@ -174,7 +174,7 @@ bool Lab::task()
                                     #ifdef LAB_TYPE_S
                                         if(noMeassure[2])
                                         {
-                                            cosphi2.setCosPhiValue(0, true);
+                                            cosphi2.setCosPhiValue(1, true);
                                         }
                                         else
                                         {
@@ -192,7 +192,7 @@ bool Lab::task()
                                             }
                                             else
                                             {
-                                                cosphi2.setCosPhiValue(0, true);
+                                                cosphi2.setCosPhiValue(1, true);
                                             }
                                         }
                                         #else
@@ -387,12 +387,13 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
             {
                 multiplier++;
             }
+            
             #ifdef LAB_TYPE_S
                 uint8_t closestToZeroIndexes[3] = {0, 0, 0};
                 float closestToZeroValues[3] = {100.0, 100.0, 100.0};
                 float voltageMeassures[SAMPLES_ARRAY_SIZE][3];
             #endif
-
+            
             for(uint8_t j = 0; j < 4; j++)
             {
                 #ifdef LAB_TYPE_S
@@ -424,7 +425,7 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                             samplesBuffer = adc.getLastChannelSamples(3, false);
                             for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
                             {
-                                values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 3);
+                                values[i] = adc.convertBitsToVoltageWithDCOffset(* samplesBuffer, CURRENT_AMPLIFIER_FACTOR, 3) * multiplier;
                                 samplesBuffer++;
                                 if(fullOutput)
                                 {
@@ -437,21 +438,6 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                         default:
                             break;
                     }
-                    /*
-                    float tempValues[3];
-                    tempValues[0] = labResults["voltage_A_RMS"];
-                    tempValues[1] = labResults["voltage_B_RMS"];
-                    tempValues[2] = labResults["voltage_C_RMS"];
-
-                    // if relay 1 connected to GND the V drops are as meassured
-                    // else if relay 1 connected to the transformer do:
-
-                    // drops ok for NEG = transformer (in resistive)
-                    labResults["voltage_AB_RMS"] = tempValues[0] - tempValues[1];
-                    labResults["voltage_BC_RMS"] = 2 * tempValues[0] - (tempValues[0] - tempValues[1]) - (2 * tempValues[2]);
-                    labResults["voltage_CNEG_RMS"] = 2 * tempValues[2];
-                    */
-
 
                 #else
                     #ifdef LAB_TYPE_P
@@ -505,63 +491,32 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
 
             #ifdef LAB_TYPE_S
 
-                /*
-                float voltageDrops[SAMPLES_ARRAY_SIZE][3];
-                uint8_t startIndex = closestToZeroIndexes[2];
-                uint8_t currentIndex = startIndex;
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
-                    {
-                        currentIndex = 0;
-                    }
-                    voltageDrops[i][2] = voltageMeassures[currentIndex][2];
-                    currentIndex++;
-                }
-                
-                startIndex = closestToZeroIndexes[1];
-                currentIndex = startIndex;
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
-                    {
-                        currentIndex = 0;
-                    }
-                    voltageDrops[i][1] = voltageMeassures[currentIndex][1] - voltageDrops[i][2];
-                    labResults["voltage_BC_values"][i] = voltageDrops[i][1];
-                    currentIndex++;
-                }
-                
-                startIndex = closestToZeroIndexes[0];
-                currentIndex = startIndex;
-                for(uint8_t i = 0; i < SAMPLES_ARRAY_SIZE; i++)
-                {
-                    if(startIndex + i == SAMPLES_ARRAY_SIZE)
-                    {
-                        currentIndex = 0;
-                    }
-                    voltageDrops[i][0] = voltageMeassures[currentIndex][0] - voltageDrops[i][1];
-                    labResults["voltage_AB_values"][i] = voltageDrops[i][0];
-                    currentIndex++;
-                }
-                
-                labResults["voltage_A_RMS"] = truncFloat3(calculateRMSValue(&voltageDrops[0][0], SAMPLES_ARRAY_SIZE));
-                labResults["voltage_B_RMS"] = truncFloat3(calculateRMSValue(&voltageDrops[0][1], SAMPLES_ARRAY_SIZE));
-
-                */
                 float tempValues[3];
                 tempValues[0] = labResults["voltage_A_RMS"];
                 tempValues[1] = labResults["voltage_B_RMS"];
                 tempValues[2] = labResults["voltage_C_RMS"];
 
-                // if relay 1 connected to GND the V drops are as meassured
-                // else if relay 1 connected to the transformer do:
+                if(noMeassure[2])
+                {
+                    labResults["voltage_C_RMS"] = truncFloat3(0.0);
+                    labResults["voltage_A_RMS"] = abs(tempValues[0] - tempValues[1]) + tempValues[2];
+                    labResults["voltage_B_RMS"] = tempValues[1];
+                }
+                else
+                {
+                    labResults["voltage_A_RMS"] = abs(tempValues[0] - tempValues[1]);
+                    labResults["voltage_B_RMS"] = abs(tempValues[1] - tempValues[2]);
+                }
 
-                // drops ok for NEG = transformer (in resistive)
-                labResults["voltage_A_RMS"] = abs(tempValues[0] - tempValues[1]);
-                labResults["voltage_B_RMS"] = abs(tempValues[0] - (tempValues[0] - tempValues[1]) - tempValues[2]);
+                if(noMeassure[0])
+                {
+                    labResults["voltage_A_RMS"] = truncFloat3(0.0);
+                }
+                if(noMeassure[1])
+                {
+                    labResults["voltage_B_RMS"] = truncFloat3(0.0);
+                }
 
-                
                 cosphiValue = truncFloat3(cosphiMeassures[0]);
                 cosphiInductive[0] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
                 labResults["node_A_cosphi"] = cosphiValue;
@@ -576,7 +531,7 @@ DynamicJsonDocument * Lab::getLabResults(bool fullOutput, bool labIsCorrect)
                 cosphiInductive[2] ? cosphiValue.concat("_ind") : cosphiValue.concat("_cap");
                 labResults["node_C_cosphi"] = cosphiValue;
                 cosphiValue = "";
-                
+
                 #else
                 #ifdef LAB_TYPE_P
 
